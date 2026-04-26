@@ -2,9 +2,9 @@ package config
 
 import (
 	"log"
+	"os"
 
 	"github.com/joho/godotenv"
-	"github.com/spf13/viper"
 )
 
 type Config struct {
@@ -19,15 +19,17 @@ func Load() *Config {
 		log.Println("no .env file found, reading from environment")
 	}
 
-	viper.AutomaticEnv()
-
-	viper.SetDefault("PORT", "8080")
-	viper.SetDefault("GIN_MODE", "debug")
-
 	return &Config{
-		DatabaseURL: viper.GetString("DATABASE_URL"),
-		Port:        viper.GetString("PORT"),
-		JWTSecret:   viper.GetString("JWT_SECRET"),
-		GinMode:     viper.GetString("GIN_MODE"),
+		DatabaseURL: getEnv("DATABASE_URL", ""),
+		Port:        getEnv("PORT", "8080"),
+		JWTSecret:   getEnv("JWT_SECRET", ""),
+		GinMode:     getEnv("GIN_MODE", "debug"),
 	}
+}
+
+func getEnv(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
 }

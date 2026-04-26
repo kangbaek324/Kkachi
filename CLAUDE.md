@@ -9,7 +9,7 @@ Go REST API server using Gin framework with CSR (Controller-Service-Repository) 
 - **Database**: PostgreSQL (via `pgx/v5`)
 - **Query**: `sqlc` (SQL → Go code generation)
 - **Migration**: `goose`
-- **Config**: `godotenv` + `viper`
+- **Config**: `godotenv`
 
 ## Project Structure
 
@@ -18,20 +18,48 @@ Go REST API server using Gin framework with CSR (Controller-Service-Repository) 
 ├── cmd/
 │   └── main.go               # Entry point
 ├── internal/
-│   ├── handler/              # HTTP handlers (Gin context)
-│   ├── service/              # Business logic
-│   ├── repository/           # DB queries (sqlc generated)
-│   └── model/                # Structs / domain types
+│   ├── common/               # Shared types (Response, errors, etc.)
+│   │   └── response.go
+│   ├── config/
+│   │   └── config.go         # Env var loading
+│   ├── middleware/
+│   │   └── auth.go           # JWT and other middleware
+│   └── domain/
+│       ├── user/             # User domain
+│       │   ├── handler/
+│       │   │   └── handler.go
+│       │   ├── service/
+│       │   │   └── service.go
+│       │   ├── routes/
+│       │   │   └── routes.go
+│       │   ├── db/
+│       │   │   └── user.sql  # sqlc query file
+│       │   └── repository/   # sqlc generated
+│       ├── wallet/           # Wallet & balance domain
+│       │   ├── handler/
+│       │   │   └── handler.go
+│       │   ├── service/
+│       │   │   └── service.go
+│       │   ├── routes/
+│       │   │   └── routes.go
+│       │   ├── db/
+│       │   │   └── wallet.sql
+│       │   └── repository/
+│       └── currency/         # Currency & exchange rate domain
+│           ├── handler/
+│           │   └── handler.go
+│           ├── service/
+│           │   └── service.go
+│           ├── routes/
+│           │   └── routes.go
+│           ├── db/
+│           │   └── currency.sql
+│           └── repository/
 ├── db/
 │   ├── postgres.go           # DB connection pool
-│   ├── migrations/           # goose migration files
-│   └── queries/              # .sql files for sqlc
-├── config/
-│   └── config.go             # Env var loading
+│   └── migrations/           # goose migration files
 ├── routes/
-│   └── routes.go             # Route registration
-├── middleware/
-│   └── auth.go               # JWT and other middleware
+│   └── routes.go             # v1/v2 version grouping, delegates to domain routes
 ├── .env                      # Local env vars (gitignored)
 ├── sqlc.yaml
 └── go.mod
@@ -95,7 +123,7 @@ GIN_MODE=debug  # or release
 
 All API responses MUST use the unified `Response` struct. Never use `gin.H{}`.
 
-**Struct definition** (`internal/model/response.go`):
+**Struct definition** (`internal/common/response.go`):
 
 ```go
 type Response struct {
@@ -110,7 +138,7 @@ type Response struct {
 
 ```go
 // Success
-c.JSON(http.StatusOK, model.Response{
+c.JSON(http.StatusOK, common.Response{
     Code:    http.StatusOK,
     Success: true,
     Message: "ok",
@@ -118,7 +146,7 @@ c.JSON(http.StatusOK, model.Response{
 })
 
 // Error
-c.JSON(http.StatusBadRequest, model.Response{
+c.JSON(http.StatusBadRequest, common.Response{
     Code:    http.StatusBadRequest,
     Success: false,
     Message: "invalid request",
@@ -137,10 +165,11 @@ c.JSON(http.StatusBadRequest, model.Response{
 
 ## SQL / sqlc Rules
 
-- Write all queries in `db/queries/*.sql`
+- Write queries in the domain's `db/` folder (e.g. `internal/domain/user/db/user.sql`)
 - Run `sqlc generate` after any SQL change
 - Never write raw SQL strings in Go code
 - Query naming convention: `GetUser`, `ListUsers`, `CreateUser`, `UpdateUser`, `DeleteUser`
+- Generated code goes into each domain's `repository/` subfolder
 
 ## Testing
 

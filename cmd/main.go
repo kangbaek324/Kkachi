@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/kangbaek324/kkachi/config"
 	"github.com/kangbaek324/kkachi/db"
+	"github.com/kangbaek324/kkachi/internal/config"
 	"github.com/kangbaek324/kkachi/routes"
 )
 
