@@ -1,9 +1,9 @@
-package service
+package currency
 
 type Service interface{}
 
 type currencyService struct{}
 
-func New() Service {
+func NewService() Service {
 	return &currencyService{}
 }

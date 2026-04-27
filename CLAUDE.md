@@ -26,37 +26,23 @@ Go REST API server using Gin framework with CSR (Controller-Service-Repository) 
 │   │   └── auth.go           # JWT and other middleware
 │   └── domain/
 │       ├── user/             # User domain
-│       │   ├── handler/
-│       │   │   └── handler.go
-│       │   ├── service/
-│       │   │   └── service.go
-│       │   ├── routes/
-│       │   │   └── routes.go
-│       │   ├── db/
-│       │   │   └── user.sql  # sqlc query file
+│       │   ├── handler.go
+│       │   ├── service.go
+│       │   ├── routes.go
 │       │   └── repository/   # sqlc generated
 │       ├── wallet/           # Wallet & balance domain
-│       │   ├── handler/
-│       │   │   └── handler.go
-│       │   ├── service/
-│       │   │   └── service.go
-│       │   ├── routes/
-│       │   │   └── routes.go
-│       │   ├── db/
-│       │   │   └── wallet.sql
-│       │   └── repository/
+│       │   ├── handler.go
+│       │   ├── service.go
+│       │   ├── routes.go
+│       │   └── repository/   # sqlc generated
 │       └── currency/         # Currency & exchange rate domain
-│           ├── handler/
-│           │   └── handler.go
-│           ├── service/
-│           │   └── service.go
-│           ├── routes/
-│           │   └── routes.go
-│           ├── db/
-│           │   └── currency.sql
-│           └── repository/
+│           ├── handler.go
+│           ├── service.go
+│           ├── routes.go
+│           └── repository/   # sqlc generated
 ├── db/
 │   ├── postgres.go           # DB connection pool
+│   ├── schema.sql            # DB schema
 │   └── migrations/           # goose migration files
 ├── routes/
 │   └── routes.go             # v1/v2 version grouping, delegates to domain routes
@@ -165,7 +151,7 @@ c.JSON(http.StatusBadRequest, common.Response{
 
 ## SQL / sqlc Rules
 
-- Write queries in the domain's `db/` folder (e.g. `internal/domain/user/db/user.sql`)
+- Write queries in `db/schema.sql`
 - Run `sqlc generate` after any SQL change
 - Never write raw SQL strings in Go code
 - Query naming convention: `GetUser`, `ListUsers`, `CreateUser`, `UpdateUser`, `DeleteUser`

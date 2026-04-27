@@ -1,7 +1,7 @@
 version: "2"
 sql:
   - engine: "postgresql"
-    queries: "internal/domain/user/db"
+    queries: "internal/domain/user"
     schema: "db/migrations"
     gen:
       go:
@@ -12,7 +12,7 @@ sql:
         emit_json_tags: true
 
   - engine: "postgresql"
-    queries: "internal/domain/wallet/db"
+    queries: "internal/domain/wallet"
     schema: "db/migrations"
     gen:
       go:
@@ -23,7 +23,7 @@ sql:
         emit_json_tags: true
 
   - engine: "postgresql"
-    queries: "internal/domain/currency/db"
+    queries: "internal/domain/currency"
     schema: "db/migrations"
     gen:
       go:

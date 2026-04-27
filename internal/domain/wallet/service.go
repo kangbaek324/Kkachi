@@ -1,9 +1,9 @@
-package service
+package wallet
 
 type Service interface{}
 
 type walletService struct{}
 
-func New() Service {
+func NewService() Service {
 	return &walletService{}
 }

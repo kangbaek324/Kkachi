@@ -1,9 +1,9 @@
-package service
+package user
 
 type Service interface{}
 
 type userService struct{}
 
-func New() Service {
+func NewService() Service {
 	return &userService{}
 }
