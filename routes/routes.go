@@ -14,22 +14,14 @@ import (
 func Register(r *gin.Engine, pool *pgxpool.Pool) {
 	r.GET("/health", func(c *gin.Context) {
 		if err := pool.Ping(c.Request.Context()); err != nil {
-			c.JSON(http.StatusServiceUnavailable, common.Response{
-				Code:    http.StatusServiceUnavailable,
-				Success: false,
-				Message: "database unavailable",
-			})
+			common.ApiResponse(c, http.StatusServiceUnavailable, false, nil, "database unavailable")
 			return
 		}
-		c.JSON(http.StatusOK, common.Response{
-			Code:    http.StatusOK,
-			Success: true,
-			Message: "ok",
-		})
+		common.ApiResponse(c, http.StatusOK, true, "ok")
 	})
 
 	v1 := r.Group("/api/v1")
-	user.Register(v1)
+	user.Register(v1, pool)
 	wallet.Register(v1)
 	currency.Register(v1)
 }

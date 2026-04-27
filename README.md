@@ -86,8 +86,17 @@ go build -o bin/server cmd/main.go
 │   └── main.go                     # 진입점
 ├── db/
 │   ├── postgres.go                 # DB 커넥션 풀
-│   ├── schema.sql                  # 전체 스키마 정의
-│   └── migrations/                 # goose 마이그레이션 파일
+│   ├── schema.sql                  # 스키마 참조용
+│   ├── migrations/                 # goose 마이그레이션 파일 (sqlc 스키마 소스)
+│   ├── queries/                    # sqlc용 SQL 쿼리 파일
+│   │   ├── user.sql
+│   │   ├── wallet.sql
+│   │   └── currency.sql
+│   └── sqlc/                       # sqlc 생성 코드 (전 도메인 공유)
+│       ├── db.go
+│       ├── models.go
+│       ├── querier.go
+│       └── *.sql.go
 ├── internal/
 │   ├── common/
 │   │   └── response.go             # 공통 Response 구조체
@@ -99,7 +108,8 @@ go build -o bin/server cmd/main.go
 │       ├── user/                   # 사용자 도메인
 │       │   ├── handler.go
 │       │   ├── service.go
-│       │   └── routes.go
+│       │   ├── routes.go
+│       │   └── dto.go              # 요청/응답 타입
 │       ├── wallet/                 # 지갑/잔액 도메인
 │       │   ├── handler.go
 │       │   ├── service.go
@@ -109,7 +119,7 @@ go build -o bin/server cmd/main.go
 │           ├── service.go
 │           └── routes.go
 ├── routes/
-│   └── routes.go                   # 버전별 라우트 그룹 (v1/v2)
+│   └── routes.go                   # 라우트 등록, 도메인별 위임
 ├── .env.example
 ├── sqlc.yaml
 └── go.mod
