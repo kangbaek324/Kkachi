@@ -12,9 +12,16 @@ import (
 )
 
 func Register(r *gin.Engine, pool *pgxpool.Pool) {
+	r.NoRoute(func(c *gin.Context) {
+		common.ApiResponse(c, http.StatusNotFound, false, nil, "Not found")
+	})
+	r.NoMethod(func(c *gin.Context) {
+		common.ApiResponse(c, http.StatusMethodNotAllowed, false, nil, "Method not allowed")
+	})
+
 	r.GET("/health", func(c *gin.Context) {
 		if err := pool.Ping(c.Request.Context()); err != nil {
-			common.ApiResponse(c, http.StatusServiceUnavailable, false, nil, "database unavailable")
+			common.ApiResponse(c, http.StatusServiceUnavailable, false, nil, "Database unavailable")
 			return
 		}
 		common.ApiResponse(c, http.StatusOK, true, "ok")

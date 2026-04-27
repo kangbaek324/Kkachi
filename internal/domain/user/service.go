@@ -10,7 +10,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var ErrUsernameAlreadyExists = errors.New("username already exists")
+var ErrUsernameAlreadyExists = errors.New("Username already exists")
 
 type Service interface {
 	Register(ctx context.Context, req CreateUserRequest) (CreateUserResponse, error)

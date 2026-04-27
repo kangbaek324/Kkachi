@@ -27,11 +27,11 @@ func (h *Handler) register(c *gin.Context) {
 	result, err := h.svc.Register(c.Request.Context(), req)
 	if err != nil {
 		if errors.Is(err, ErrUsernameAlreadyExists) {
-			common.ApiResponse(c, http.StatusConflict, false, nil, "username already exists")
+			common.ApiResponse(c, http.StatusConflict, false, nil, "Username already exists")
 			return
 		}
 		log.Printf("register: %v", err)
-		common.ApiResponse(c, http.StatusInternalServerError, false, nil, "internal server error")
+		common.ApiResponse(c, http.StatusInternalServerError, false, nil, "Internal server error")
 		return
 	}
 

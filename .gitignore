@@ -12,3 +12,7 @@ vendor/
 .idea/
 .vscode/
 *.swp
+
+# Air
+.air.toml
+tmp/
