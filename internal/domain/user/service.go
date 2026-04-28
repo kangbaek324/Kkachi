@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"strconv"
@@ -85,10 +86,9 @@ func (s *userService) Login(ctx context.Context, req LoginRequest) (LoginRespons
 		return LoginResponse{}, fmt.Errorf("generate token: %w", err)
 	}
 
-	// TODO: hash RefreshToken before storing
 	_, err = s.q.CreateRefreshToken(ctx, db.CreateRefreshTokenParams{
 		UserID: user.ID,
-		Token:  tok.refresh,
+		Token:  hashToken(tok.refresh),
 		ExpiresAt: pgtype.Timestamptz{
 			Time:  time.Now().Add(7 * 24 * time.Hour),
 			Valid: true,
@@ -105,7 +105,7 @@ func (s *userService) Login(ctx context.Context, req LoginRequest) (LoginRespons
 }
 
 func (s *userService) RefreshAccessToken(ctx context.Context, req RefreshAccessTokenRequest) (RefreshAccessTokenResponse, error) {
-	refreshToken, err := s.q.GetRefreshToken(ctx, req.RefreshToken)
+	refreshToken, err := s.q.GetRefreshToken(ctx, hashToken(req.RefreshToken))
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return RefreshAccessTokenResponse{}, ErrInvalidCredentials
@@ -142,4 +142,9 @@ func signJWT(userID int64, secret string, duration time.Duration) (string, error
 	}
 	t := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return t.SignedString([]byte(secret))
+}
+
+func hashToken(token string) string {
+	h := sha256.Sum256([]byte(token))
+	return fmt.Sprintf("%x", h)
 }
