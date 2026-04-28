@@ -24,6 +24,7 @@ var refershTokenExpireDate = 7 * 24 * time.Hour
 type Service interface {
 	Register(ctx context.Context, req CreateUserRequest) (CreateUserResponse, error)
 	Login(ctx context.Context, req LoginRequest) (LoginResponse, error)
+	RefreshAccessToken(ctx context.Context, req RefreshAccessTokenRequest) (RefreshAccessTokenResponse, error)
 }
 
 type userService struct {
@@ -84,6 +85,7 @@ func (s *userService) Login(ctx context.Context, req LoginRequest) (LoginRespons
 		return LoginResponse{}, fmt.Errorf("generate token: %w", err)
 	}
 
+	// TODO: hash RefreshToken before storing
 	_, err = s.q.CreateRefreshToken(ctx, db.CreateRefreshTokenParams{
 		UserID: user.ID,
 		Token:  tok.refresh,
@@ -99,6 +101,24 @@ func (s *userService) Login(ctx context.Context, req LoginRequest) (LoginRespons
 	return LoginResponse{
 		AccessToken:  tok.access,
 		RefreshToken: tok.refresh,
+	}, nil
+}
+
+func (s *userService) RefreshAccessToken(ctx context.Context, req RefreshAccessTokenRequest) (RefreshAccessTokenResponse, error) {
+	refreshToken, err := s.q.GetRefreshToken(ctx, req.RefreshToken)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return RefreshAccessTokenResponse{}, ErrInvalidCredentials
+		}
+		return RefreshAccessTokenResponse{}, fmt.Errorf("get refershToken: %w", err)
+	}
+
+	accessToken, err := signJWT(refreshToken.UserID, s.jwtSecret, accessTokenExpireDate)
+	if err != nil {
+		return RefreshAccessTokenResponse{}, err
+	}
+	return RefreshAccessTokenResponse{
+		AccessToken: accessToken,
 	}, nil
 }
 

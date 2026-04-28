@@ -14,4 +14,5 @@ func Register(rg *gin.RouterGroup, pool *pgxpool.Pool, jwtSecret string) {
 
 	users.POST("/register", h.register)
 	users.POST("/login", h.login)
+	users.POST("/refresh-accesstoken", h.refreshAccessToken)
 }

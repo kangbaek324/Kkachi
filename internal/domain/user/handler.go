@@ -58,3 +58,24 @@ func (h *Handler) login(c *gin.Context) {
 
 	common.ApiResponse(c, http.StatusOK, true, res)
 }
+
+func (h *Handler) refreshAccessToken(c *gin.Context) {
+	var req RefreshAccessTokenRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		common.ApiResponse(c, http.StatusBadRequest, false, nil, err.Error())
+		return
+	}
+
+	res, err := h.svc.RefreshAccessToken(c.Request.Context(), req)
+	if err != nil {
+		if errors.Is(err, ErrInvalidCredentials) {
+			common.ApiResponse(c, http.StatusUnauthorized, false, nil, err.Error())
+			return
+		}
+		log.Printf("refreshAccessToken: %v", err)
+		common.ApiResponse(c, http.StatusInternalServerError, false, nil, "Internal server error")
+		return
+	}
+
+	common.ApiResponse(c, http.StatusOK, true, res)
+}
