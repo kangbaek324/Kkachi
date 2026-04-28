@@ -18,9 +18,10 @@ import (
 
 var ErrUsernameAlreadyExists = errors.New("username already exists")
 var ErrInvalidCredentials = errors.New("invalid credentials")
+var ErrRefreshTokenExpired = errors.New("refreshToken expired")
 
 var accessTokenExpireDate = time.Hour
-var refershTokenExpireDate = 7 * 24 * time.Hour
+var refreshTokenExpireDate = time.Hour / 60 / 60
 
 type Service interface {
 	Register(ctx context.Context, req CreateUserRequest) (CreateUserResponse, error)
@@ -90,7 +91,7 @@ func (s *userService) Login(ctx context.Context, req LoginRequest) (LoginRespons
 		UserID: user.ID,
 		Token:  hashToken(tok.refresh),
 		ExpiresAt: pgtype.Timestamptz{
-			Time:  time.Now().Add(7 * 24 * time.Hour),
+			Time:  time.Now().Add(refreshTokenExpireDate),
 			Valid: true,
 		},
 	})
@@ -113,6 +114,15 @@ func (s *userService) RefreshAccessToken(ctx context.Context, req RefreshAccessT
 		return RefreshAccessTokenResponse{}, fmt.Errorf("get refershToken: %w", err)
 	}
 
+	if refreshToken.ExpiresAt.Time.Before(time.Now()) {
+		err := s.q.DeleteRefreshToken(ctx, refreshToken.Token)
+		if err != nil {
+			return RefreshAccessTokenResponse{}, fmt.Errorf("delete refershToken: %w", err)
+		}
+
+		return RefreshAccessTokenResponse{}, ErrRefreshTokenExpired
+	}
+
 	accessToken, err := signJWT(refreshToken.UserID, s.jwtSecret, accessTokenExpireDate)
 	if err != nil {
 		return RefreshAccessTokenResponse{}, err
@@ -127,7 +137,7 @@ func (s *userService) generateTokenPair(userID int64) (tokenPair, error) {
 	if err != nil {
 		return tokenPair{}, err
 	}
-	refresh, err := signJWT(userID, s.jwtSecret, refershTokenExpireDate)
+	refresh, err := signJWT(userID, s.jwtSecret, refreshTokenExpireDate)
 	if err != nil {
 		return tokenPair{}, err
 	}

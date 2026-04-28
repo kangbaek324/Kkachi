@@ -9,3 +9,6 @@ INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES($1, $2, $3) RETUR
 
 -- name: GetRefreshToken :one
 SELECT * FROM refresh_tokens WHERE token = $1;
+
+-- name: DeleteRefreshToken :exec
+DELETE FROM refresh_tokens WHERE token = $1 RETURNING *;

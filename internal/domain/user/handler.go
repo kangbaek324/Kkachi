@@ -68,7 +68,7 @@ func (h *Handler) refreshAccessToken(c *gin.Context) {
 
 	res, err := h.svc.RefreshAccessToken(c.Request.Context(), req)
 	if err != nil {
-		if errors.Is(err, ErrInvalidCredentials) {
+		if errors.Is(err, ErrInvalidCredentials) || errors.Is(err, ErrRefreshTokenExpired) {
 			common.ApiResponse(c, http.StatusUnauthorized, false, nil, err.Error())
 			return
 		}
