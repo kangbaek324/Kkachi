@@ -11,5 +11,15 @@ type CreateUserResponse struct {
 	ID        int64     `json:"id"`
 	Username  string    `json:"username"`
 	Role      string    `json:"role"`
-	CreatedAt time.Time `json:"created_at"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
+type LoginRequest struct {
+	Username string `json:"username" binding:"required"`
+	Password string `json:"password" binding:"required"`
+}
+
+type LoginResponse struct {
+	AccessToken  string `json:"accessToken"`
+	RefreshToken string `json:"refreshToken"`
 }

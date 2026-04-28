@@ -6,10 +6,12 @@ import (
 	db "github.com/kangbaek324/kkachi/db/sqlc"
 )
 
-func Register(rg *gin.RouterGroup, pool *pgxpool.Pool) {
-	svc := NewService(db.New(pool))
+func Register(rg *gin.RouterGroup, pool *pgxpool.Pool, jwtSecret string) {
+	svc := NewService(db.New(pool), jwtSecret)
 	h := NewHandler(svc)
 
 	users := rg.Group("/users")
+
 	users.POST("/register", h.register)
+	users.POST("/login", h.login)
 }

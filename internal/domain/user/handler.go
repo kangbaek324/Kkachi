@@ -24,10 +24,10 @@ func (h *Handler) register(c *gin.Context) {
 		return
 	}
 
-	result, err := h.svc.Register(c.Request.Context(), req)
+	res, err := h.svc.Register(c.Request.Context(), req)
 	if err != nil {
 		if errors.Is(err, ErrUsernameAlreadyExists) {
-			common.ApiResponse(c, http.StatusConflict, false, nil, "Username already exists")
+			common.ApiResponse(c, http.StatusConflict, false, nil, err.Error())
 			return
 		}
 		log.Printf("register: %v", err)
@@ -35,5 +35,26 @@ func (h *Handler) register(c *gin.Context) {
 		return
 	}
 
-	common.ApiResponse(c, http.StatusCreated, true, result)
+	common.ApiResponse(c, http.StatusCreated, true, res)
+}
+
+func (h *Handler) login(c *gin.Context) {
+	var req LoginRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		common.ApiResponse(c, http.StatusBadRequest, false, nil, err.Error())
+		return
+	}
+
+	res, err := h.svc.Login(c.Request.Context(), req)
+	if err != nil {
+		if errors.Is(err, ErrInvalidCredentials) {
+			common.ApiResponse(c, http.StatusUnauthorized, false, nil, err.Error())
+			return
+		}
+		log.Printf("login: %v", err)
+		common.ApiResponse(c, http.StatusInternalServerError, false, nil, "Internal server error")
+		return
+	}
+
+	common.ApiResponse(c, http.StatusOK, true, res)
 }

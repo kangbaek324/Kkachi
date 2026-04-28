@@ -30,7 +30,7 @@ func main() {
 
 	// Router Setup
 	r := gin.Default()
-	routes.Register(r, pool)
+	routes.Register(r, pool, cfg)
 
 	// Server Setup
 	srv := &http.Server{
