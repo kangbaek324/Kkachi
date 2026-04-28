@@ -1,5 +1,4 @@
-CREATE TYPE user_role AS ENUM ('user', 'admin');
-
+-- +goose Up
 CREATE TABLE users (
     id          BIGSERIAL    PRIMARY KEY,
     username    VARCHAR(50)  NOT NULL UNIQUE,
@@ -38,3 +37,10 @@ CREATE TABLE balances (
     amount      NUMERIC(18, 6) NOT NULL DEFAULT 0,
     UNIQUE (wallet_id, currency_id)
 );
+
+-- +goose Down
+DROP TABLE balances;
+DROP TABLE wallets;
+DROP TABLE exchange_rates;
+DROP TABLE currencies;
+DROP TABLE users;

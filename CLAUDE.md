@@ -23,29 +23,36 @@ Go REST API server using Gin framework with CSR (Controller-Service-Repository) 
 │   ├── config/
 │   │   └── config.go         # Env var loading
 │   ├── middleware/
-│   │   └── auth.go           # JWT and other middleware
+│   │   └── auth.go           # JWT middleware
 │   └── domain/
 │       ├── user/             # User domain
 │       │   ├── handler.go
 │       │   ├── service.go
 │       │   ├── routes.go
-│       │   └── repository/   # sqlc generated
+│       │   └── dto.go        # Request/Response types
 │       ├── wallet/           # Wallet & balance domain
 │       │   ├── handler.go
 │       │   ├── service.go
-│       │   ├── routes.go
-│       │   └── repository/   # sqlc generated
+│       │   └── routes.go
 │       └── currency/         # Currency & exchange rate domain
 │           ├── handler.go
 │           ├── service.go
-│           ├── routes.go
-│           └── repository/   # sqlc generated
+│           └── routes.go
 ├── db/
 │   ├── postgres.go           # DB connection pool
-│   ├── schema.sql            # DB schema
-│   └── migrations/           # goose migration files
+│   ├── schema.sql            # DB schema reference
+│   ├── migrations/           # goose migration files (used as sqlc schema source)
+│   ├── queries/              # Raw SQL query files for sqlc
+│   │   ├── user.sql
+│   │   ├── wallet.sql
+│   │   └── currency.sql
+│   └── sqlc/                 # sqlc generated code (shared across all domains)
+│       ├── db.go
+│       ├── models.go
+│       ├── querier.go
+│       └── *.sql.go
 ├── routes/
-│   └── routes.go             # v1/v2 version grouping, delegates to domain routes
+│   └── routes.go             # Route registration, delegates to domain routes
 ├── .env                      # Local env vars (gitignored)
 ├── sqlc.yaml
 └── go.mod
@@ -151,11 +158,12 @@ c.JSON(http.StatusBadRequest, common.Response{
 
 ## SQL / sqlc Rules
 
-- Write queries in `db/schema.sql`
+- Write SQL queries in `db/queries/<domain>.sql`
+- Schema source for sqlc is `db/migrations/` (not `db/schema.sql`)
 - Run `sqlc generate` after any SQL change
 - Never write raw SQL strings in Go code
 - Query naming convention: `GetUser`, `ListUsers`, `CreateUser`, `UpdateUser`, `DeleteUser`
-- Generated code goes into each domain's `repository/` subfolder
+- Generated code goes into `db/sqlc/` (shared package, not per-domain)
 
 ## Testing
 
