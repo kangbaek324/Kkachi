@@ -30,3 +30,13 @@ func (h *Handler) createWallet(c *gin.Context) {
 	}
 	common.ApiResponse(c, http.StatusCreated, true, res)
 }
+
+func (h *Handler) getWallets(c *gin.Context) {
+	res, err := h.svc.GetWallets(c.Request.Context(), c.GetInt64("userId"))
+	if err != nil {
+		log.Printf("createWallet: %v", err)
+		common.ApiResponse(c, http.StatusInternalServerError, false, nil, "internal server error")
+		return
+	}
+	common.ApiResponse(c, http.StatusCreated, true, res)
+}

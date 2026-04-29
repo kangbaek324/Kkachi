@@ -31,3 +31,32 @@ func (q *Queries) CreateWallet(ctx context.Context, arg CreateWalletParams) (Wal
 	)
 	return i, err
 }
+
+const getWallets = `-- name: GetWallets :many
+SELECT wallet_number, nickname FROM wallets WHERE user_id = $1
+`
+
+type GetWalletsRow struct {
+	WalletNumber string `json:"wallet_number"`
+	Nickname     string `json:"nickname"`
+}
+
+func (q *Queries) GetWallets(ctx context.Context, userID int64) ([]GetWalletsRow, error) {
+	rows, err := q.db.Query(ctx, getWallets, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetWalletsRow
+	for rows.Next() {
+		var i GetWalletsRow
+		if err := rows.Scan(&i.WalletNumber, &i.Nickname); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

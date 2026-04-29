@@ -12,6 +12,7 @@ import (
 
 type Service interface {
 	CreateWallet(ctx context.Context, req CreateWalletRequest, userId int64) (CreateWalletResponse, error)
+	GetWallets(ctx context.Context, userId int64) (GetWalletsResponse, error)
 }
 
 type walletService struct {
@@ -35,7 +36,7 @@ func (s *walletService) CreateWallet(ctx context.Context, req CreateWalletReques
 			if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 				continue
 			}
-			return CreateWalletResponse{}, fmt.Errorf("createWallet: %w", err)
+			return CreateWalletResponse{}, fmt.Errorf("create Wallet: %w", err)
 		}
 
 		return CreateWalletResponse{
@@ -45,4 +46,23 @@ func (s *walletService) CreateWallet(ctx context.Context, req CreateWalletReques
 	}
 
 	return CreateWalletResponse{}, fmt.Errorf("createWallet: failed to generate unique wallet number")
+}
+
+func (s *walletService) GetWallets(ctx context.Context, userId int64) (GetWalletsResponse, error) {
+	wallets, err := s.q.GetWallets(ctx, userId)
+	if err != nil {
+		return GetWalletsResponse{}, fmt.Errorf("get wallets: %w", err)
+	}
+
+	items := make([]WalletItem, len(wallets))
+	for i, w := range wallets {
+		items[i] = WalletItem{
+			WalletNumber: w.WalletNumber,
+			Nickname:     w.Nickname,
+		}
+	}
+
+	return GetWalletsResponse{
+		Wallets: items,
+	}, nil
 }
