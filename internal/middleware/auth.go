@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -47,7 +48,18 @@ func Auth(jwtSecret string) gin.HandlerFunc {
 			return
 		}
 
-		c.Set("claims", claims)
+		sub, err := claims.GetSubject()
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, common.Response{
+				Code:    http.StatusInternalServerError,
+				Success: false,
+				Message: "internal server error",
+			})
+			return
+		}
+
+		userID, err := strconv.ParseInt(sub, 10, 64)
+		c.Set("userId", userID)
 		c.Next()
 	}
 }

@@ -18,9 +18,8 @@ func NewHandler(svc Service) *Handler {
 }
 
 func (h *Handler) register(c *gin.Context) {
-	var req CreateUserRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		common.ApiResponse(c, http.StatusBadRequest, false, nil, err.Error())
+	req, ok := common.BindJSON[CreateUserRequest](c)
+	if !ok {
 		return
 	}
 
@@ -31,7 +30,7 @@ func (h *Handler) register(c *gin.Context) {
 			return
 		}
 		log.Printf("register: %v", err)
-		common.ApiResponse(c, http.StatusInternalServerError, false, nil, "Internal server error")
+		common.ApiResponse(c, http.StatusInternalServerError, false, nil, "internal server error")
 		return
 	}
 
@@ -39,9 +38,8 @@ func (h *Handler) register(c *gin.Context) {
 }
 
 func (h *Handler) login(c *gin.Context) {
-	var req LoginRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		common.ApiResponse(c, http.StatusBadRequest, false, nil, err.Error())
+	req, ok := common.BindJSON[LoginRequest](c)
+	if !ok {
 		return
 	}
 
@@ -52,7 +50,7 @@ func (h *Handler) login(c *gin.Context) {
 			return
 		}
 		log.Printf("login: %v", err)
-		common.ApiResponse(c, http.StatusInternalServerError, false, nil, "Internal server error")
+		common.ApiResponse(c, http.StatusInternalServerError, false, nil, "internal server error")
 		return
 	}
 
@@ -60,9 +58,8 @@ func (h *Handler) login(c *gin.Context) {
 }
 
 func (h *Handler) refreshAccessToken(c *gin.Context) {
-	var req RefreshAccessTokenRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		common.ApiResponse(c, http.StatusBadRequest, false, nil, err.Error())
+	req, ok := common.BindJSON[RefreshAccessTokenRequest](c)
+	if !ok {
 		return
 	}
 
@@ -73,7 +70,7 @@ func (h *Handler) refreshAccessToken(c *gin.Context) {
 			return
 		}
 		log.Printf("refreshAccessToken: %v", err)
-		common.ApiResponse(c, http.StatusInternalServerError, false, nil, "Internal server error")
+		common.ApiResponse(c, http.StatusInternalServerError, false, nil, "internal server error")
 		return
 	}
 

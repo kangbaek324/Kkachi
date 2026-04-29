@@ -25,7 +25,7 @@ type LoginResponse struct {
 }
 
 type RefreshAccessTokenRequest struct {
-	RefreshToken string `json:"refreshToken"`
+	RefreshToken string `json:"refreshToken" binding:"required"`
 }
 
 type RefreshAccessTokenResponse struct {
