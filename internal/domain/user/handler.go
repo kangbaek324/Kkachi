@@ -1,8 +1,6 @@
 package user
 
 import (
-	"errors"
-	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -18,20 +16,14 @@ func NewHandler(svc Service) *Handler {
 }
 
 func (h *Handler) register(c *gin.Context) {
-	var req CreateUserRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		common.ApiResponse(c, http.StatusBadRequest, false, nil, err.Error())
+	req, ok := common.BindJSON[CreateUserRequest](c)
+	if !ok {
 		return
 	}
 
 	res, err := h.svc.Register(c.Request.Context(), req)
 	if err != nil {
-		if errors.Is(err, ErrUsernameAlreadyExists) {
-			common.ApiResponse(c, http.StatusConflict, false, nil, err.Error())
-			return
-		}
-		log.Printf("register: %v", err)
-		common.ApiResponse(c, http.StatusInternalServerError, false, nil, "Internal server error")
+		common.ErrorResponse(c, err)
 		return
 	}
 
@@ -39,20 +31,14 @@ func (h *Handler) register(c *gin.Context) {
 }
 
 func (h *Handler) login(c *gin.Context) {
-	var req LoginRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		common.ApiResponse(c, http.StatusBadRequest, false, nil, err.Error())
+	req, ok := common.BindJSON[LoginRequest](c)
+	if !ok {
 		return
 	}
 
 	res, err := h.svc.Login(c.Request.Context(), req)
 	if err != nil {
-		if errors.Is(err, ErrInvalidCredentials) {
-			common.ApiResponse(c, http.StatusUnauthorized, false, nil, err.Error())
-			return
-		}
-		log.Printf("login: %v", err)
-		common.ApiResponse(c, http.StatusInternalServerError, false, nil, "Internal server error")
+		common.ErrorResponse(c, err)
 		return
 	}
 
@@ -60,20 +46,14 @@ func (h *Handler) login(c *gin.Context) {
 }
 
 func (h *Handler) refreshAccessToken(c *gin.Context) {
-	var req RefreshAccessTokenRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		common.ApiResponse(c, http.StatusBadRequest, false, nil, err.Error())
+	req, ok := common.BindJSON[RefreshAccessTokenRequest](c)
+	if !ok {
 		return
 	}
 
 	res, err := h.svc.RefreshAccessToken(c.Request.Context(), req)
 	if err != nil {
-		if errors.Is(err, ErrInvalidCredentials) || errors.Is(err, ErrRefreshTokenExpired) {
-			common.ApiResponse(c, http.StatusUnauthorized, false, nil, err.Error())
-			return
-		}
-		log.Printf("refreshAccessToken: %v", err)
-		common.ApiResponse(c, http.StatusInternalServerError, false, nil, "Internal server error")
+		common.ErrorResponse(c, err)
 		return
 	}
 

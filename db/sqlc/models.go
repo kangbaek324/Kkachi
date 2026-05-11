@@ -6,13 +6,14 @@ package sqlc
 
 import (
 	"github.com/jackc/pgx/v5/pgtype"
+	decimal "github.com/shopspring/decimal"
 )
 
 type Balance struct {
-	ID         int64          `json:"id"`
-	WalletID   int64          `json:"wallet_id"`
-	CurrencyID int64          `json:"currency_id"`
-	Amount     pgtype.Numeric `json:"amount"`
+	ID         int64           `json:"id"`
+	WalletID   int64           `json:"wallet_id"`
+	CurrencyID int64           `json:"currency_id"`
+	Amount     decimal.Decimal `json:"amount"`
 }
 
 type Currency struct {
@@ -25,7 +26,7 @@ type Currency struct {
 type ExchangeRate struct {
 	ID         int64              `json:"id"`
 	CurrencyID int64              `json:"currency_id"`
-	Rate       pgtype.Numeric     `json:"rate"`
+	Rate       decimal.Decimal    `json:"rate"`
 	UpdatedAt  pgtype.Timestamptz `json:"updated_at"`
 }
 
@@ -47,9 +48,9 @@ type User struct {
 }
 
 type Wallet struct {
-	ID            int64              `json:"id"`
-	UserID        int64              `json:"user_id"`
-	AccountNumber string             `json:"account_number"`
-	Nickname      pgtype.Text        `json:"nickname"`
-	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+	ID           int64              `json:"id"`
+	UserID       int64              `json:"user_id"`
+	WalletNumber string             `json:"wallet_number"`
+	Nickname     string             `json:"nickname"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
 }

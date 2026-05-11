@@ -1,9 +1,119 @@
 package wallet
 
-type Service interface{}
+import (
+	"context"
+	"errors"
+	"fmt"
+	"math/rand/v2"
+	"net/http"
 
-type walletService struct{}
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
+	db "github.com/kangbaek324/kkachi/db/sqlc"
+	"github.com/kangbaek324/kkachi/internal/common"
+)
 
-func NewService() Service {
-	return &walletService{}
+var ErrWalletNotFound = common.NewAppError(http.StatusNotFound, "wallet not found")
+var ErrNotWalletOwner = common.NewAppError(http.StatusForbidden, "not wallet owner")
+
+type Service interface {
+	CreateWallet(ctx context.Context, req CreateWalletRequest, userId int64) (CreateWalletResponse, error)
+	GetWallets(ctx context.Context, userId int64) (GetWalletsResponse, error)
+	EditWalletNickname(ctx context.Context, req EditWalletNicknameRequest, userId int64) error
+	GetWalletBalance(ctx context.Context, userId int64, walletNumber string) (GetWalletBalanceResponse, error)
+}
+
+type walletService struct {
+	q db.Querier
+}
+
+func NewService(q db.Querier) Service {
+	return &walletService{q: q}
+}
+
+func (s *walletService) CreateWallet(ctx context.Context, req CreateWalletRequest, userId int64) (CreateWalletResponse, error) {
+	for range 5 {
+		walletNumber := fmt.Sprintf("KK-%06d", rand.IntN(900000)+100000)
+		wallet, err := s.q.CreateWallet(ctx, db.CreateWalletParams{
+			UserID:       userId,
+			WalletNumber: walletNumber,
+			Nickname:     req.Nickname,
+		})
+		if err != nil {
+			var pgErr *pgconn.PgError
+			if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+				continue
+			}
+			return CreateWalletResponse{}, fmt.Errorf("createWallet: %w", err)
+		}
+
+		return CreateWalletResponse{
+			WalletNumber: wallet.WalletNumber,
+			Nickname:     wallet.Nickname,
+		}, nil
+	}
+
+	return CreateWalletResponse{}, fmt.Errorf("createWallet: failed to generate unique wallet number")
+}
+
+func (s *walletService) GetWallets(ctx context.Context, userId int64) (GetWalletsResponse, error) {
+	wallets, err := s.q.GetWallets(ctx, userId)
+	if err != nil {
+		return GetWalletsResponse{}, fmt.Errorf("getWallets: %w", err)
+	}
+
+	items := make([]WalletItem, len(wallets))
+	for i, w := range wallets {
+		items[i] = WalletItem{
+			WalletNumber: w.WalletNumber,
+			Nickname:     w.Nickname,
+		}
+	}
+
+	return GetWalletsResponse{
+		Wallets: items,
+	}, nil
+}
+
+func (s *walletService) GetWalletBalance(ctx context.Context, userId int64, walletNumber string) (GetWalletBalanceResponse, error) {
+	rows, err := s.q.GetWalletBalance(ctx, walletNumber)
+	if err != nil {
+		return GetWalletBalanceResponse{}, fmt.Errorf("GetWalletBalance: %w", err)
+	}
+
+	if len(rows) == 0 {
+		return GetWalletBalanceResponse{}, fmt.Errorf("GetWalletBalance: %w", ErrWalletNotFound)
+	}
+	if rows[0].UserID != userId {
+		return GetWalletBalanceResponse{}, fmt.Errorf("GetWalletBalance: %w", ErrNotWalletOwner)
+	}
+
+	items := make([]WalletBalance, len(rows))
+	for i, r := range rows {
+		items[i] = WalletBalance{
+			Code:   r.Code,
+			Name:   r.Name,
+			Amount: r.Amount,
+		}
+	}
+
+	return GetWalletBalanceResponse{
+		Balances: items,
+	}, nil
+}
+
+func (s *walletService) EditWalletNickname(ctx context.Context, req EditWalletNicknameRequest, userId int64) error {
+	wallet, err := s.q.GetWalletByWalletNumber(ctx, req.WalletNumber)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return fmt.Errorf("editWalletNickname: %w", ErrWalletNotFound)
+		}
+		return fmt.Errorf("editWalletNickname: %w", err)
+	}
+
+	if wallet.UserID != userId {
+		return fmt.Errorf("editWalletNickname: %w", ErrNotWalletOwner)
+	}
+
+	return nil
 }

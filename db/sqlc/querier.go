@@ -11,9 +11,13 @@ import (
 type Querier interface {
 	CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) (RefreshToken, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
+	CreateWallet(ctx context.Context, arg CreateWalletParams) (Wallet, error)
 	DeleteRefreshToken(ctx context.Context, token string) error
 	GetRefreshToken(ctx context.Context, token string) (RefreshToken, error)
 	GetUser(ctx context.Context, username string) (User, error)
+	GetWalletBalance(ctx context.Context, walletNumber string) ([]GetWalletBalanceRow, error)
+	GetWalletByWalletNumber(ctx context.Context, walletNumber string) (GetWalletByWalletNumberRow, error)
+	GetWallets(ctx context.Context, userID int64) ([]GetWalletsRow, error)
 }
 
 var _ Querier = (*Queries)(nil)

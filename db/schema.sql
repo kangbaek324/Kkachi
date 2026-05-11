@@ -26,7 +26,7 @@ CREATE TABLE exchange_rates (
 CREATE TABLE wallets (
     id             BIGSERIAL    PRIMARY KEY,
     user_id        BIGINT       NOT NULL REFERENCES users(id),
-    account_number VARCHAR(20)  NOT NULL UNIQUE,
+    wallet_number  VARCHAR(20)  NOT NULL UNIQUE,
     nickname       VARCHAR(50),
     created_at     TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
@@ -37,4 +37,12 @@ CREATE TABLE balances (
     currency_id BIGINT         NOT NULL REFERENCES currencies(id),
     amount      NUMERIC(18, 6) NOT NULL DEFAULT 0,
     UNIQUE (wallet_id, currency_id)
+);
+
+CREATE TABLE refresh_tokens (
+    id         BIGSERIAL    PRIMARY KEY,
+    user_id    BIGINT       NOT NULL REFERENCES users(id),
+    token      VARCHAR(512) NOT NULL UNIQUE,
+    expires_at TIMESTAMPTZ  NOT NULL,
+    created_at TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );

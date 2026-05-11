@@ -30,6 +30,6 @@ func Register(r *gin.Engine, pool *pgxpool.Pool, cfg *config.Config) {
 
 	v1 := r.Group("/api/v1")
 	user.Register(v1, pool, cfg.JWTSecret)
-	wallet.Register(v1)
+	wallet.Register(v1, pool, cfg.JWTSecret)
 	currency.Register(v1)
 }
