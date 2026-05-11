@@ -1,8 +1,6 @@
 package user
 
 import (
-	"errors"
-	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -25,12 +23,7 @@ func (h *Handler) register(c *gin.Context) {
 
 	res, err := h.svc.Register(c.Request.Context(), req)
 	if err != nil {
-		if errors.Is(err, ErrUsernameAlreadyExists) {
-			common.ApiResponse(c, http.StatusConflict, false, nil, err.Error())
-			return
-		}
-		log.Printf("register: %v", err)
-		common.ApiResponse(c, http.StatusInternalServerError, false, nil, "internal server error")
+		common.ErrorResponse(c, err)
 		return
 	}
 
@@ -45,12 +38,7 @@ func (h *Handler) login(c *gin.Context) {
 
 	res, err := h.svc.Login(c.Request.Context(), req)
 	if err != nil {
-		if errors.Is(err, ErrInvalidCredentials) {
-			common.ApiResponse(c, http.StatusUnauthorized, false, nil, err.Error())
-			return
-		}
-		log.Printf("login: %v", err)
-		common.ApiResponse(c, http.StatusInternalServerError, false, nil, "internal server error")
+		common.ErrorResponse(c, err)
 		return
 	}
 
@@ -65,12 +53,7 @@ func (h *Handler) refreshAccessToken(c *gin.Context) {
 
 	res, err := h.svc.RefreshAccessToken(c.Request.Context(), req)
 	if err != nil {
-		if errors.Is(err, ErrInvalidCredentials) || errors.Is(err, ErrRefreshTokenExpired) {
-			common.ApiResponse(c, http.StatusUnauthorized, false, nil, err.Error())
-			return
-		}
-		log.Printf("refreshAccessToken: %v", err)
-		common.ApiResponse(c, http.StatusInternalServerError, false, nil, "internal server error")
+		common.ErrorResponse(c, err)
 		return
 	}
 

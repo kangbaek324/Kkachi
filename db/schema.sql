@@ -26,7 +26,7 @@ CREATE TABLE exchange_rates (
 CREATE TABLE wallets (
     id             BIGSERIAL    PRIMARY KEY,
     user_id        BIGINT       NOT NULL REFERENCES users(id),
-    wallet_number VARCHAR(20)  NOT NULL UNIQUE,
+    wallet_number  VARCHAR(20)  NOT NULL UNIQUE,
     nickname       VARCHAR(50),
     created_at     TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );

@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"net/http"
 	"strconv"
 	"time"
 
@@ -13,12 +14,13 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 	db "github.com/kangbaek324/kkachi/db/sqlc"
+	"github.com/kangbaek324/kkachi/internal/common"
 	"golang.org/x/crypto/bcrypt"
 )
 
-var ErrUsernameAlreadyExists = errors.New("username already exists")
-var ErrInvalidCredentials = errors.New("invalid credentials")
-var ErrRefreshTokenExpired = errors.New("refreshToken expired")
+var ErrUsernameAlreadyExists = common.NewAppError(http.StatusConflict, "username already exists")
+var ErrInvalidCredentials = common.NewAppError(http.StatusUnauthorized, "invalid credentials")
+var ErrRefreshTokenExpired = common.NewAppError(http.StatusUnauthorized, "refreshToken expired")
 
 var accessTokenExpireDate = time.Hour
 var refreshTokenExpireDate = time.Hour / 60 / 60
@@ -56,7 +58,7 @@ func (s *userService) Register(ctx context.Context, req CreateUserRequest) (Crea
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			return CreateUserResponse{}, ErrUsernameAlreadyExists
+			return CreateUserResponse{}, fmt.Errorf("register: %w", ErrUsernameAlreadyExists)
 		}
 		return CreateUserResponse{}, err
 	}
@@ -73,13 +75,13 @@ func (s *userService) Login(ctx context.Context, req LoginRequest) (LoginRespons
 	user, err := s.q.GetUser(ctx, req.Username)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return LoginResponse{}, ErrInvalidCredentials
+			return LoginResponse{}, fmt.Errorf("login: %w", ErrInvalidCredentials)
 		}
-		return LoginResponse{}, fmt.Errorf("get user: %w", err)
+		return LoginResponse{}, fmt.Errorf("login: %w", err)
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
-		return LoginResponse{}, ErrInvalidCredentials
+		return LoginResponse{}, fmt.Errorf("login: %w", ErrInvalidCredentials)
 	}
 
 	tok, err := s.generateTokenPair(user.ID)
@@ -109,18 +111,18 @@ func (s *userService) RefreshAccessToken(ctx context.Context, req RefreshAccessT
 	refreshToken, err := s.q.GetRefreshToken(ctx, hashToken(req.RefreshToken))
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return RefreshAccessTokenResponse{}, ErrInvalidCredentials
+			return RefreshAccessTokenResponse{}, fmt.Errorf("refreshAccessToken: %w", ErrInvalidCredentials)
 		}
-		return RefreshAccessTokenResponse{}, fmt.Errorf("get refershToken: %w", err)
+		return RefreshAccessTokenResponse{}, fmt.Errorf("refreshAccessToken: %w", err)
 	}
 
 	if refreshToken.ExpiresAt.Time.Before(time.Now()) {
 		err := s.q.DeleteRefreshToken(ctx, refreshToken.Token)
 		if err != nil {
-			return RefreshAccessTokenResponse{}, fmt.Errorf("delete refershToken: %w", err)
+			return RefreshAccessTokenResponse{}, fmt.Errorf("deleteRefershToken: %w", err)
 		}
 
-		return RefreshAccessTokenResponse{}, ErrRefreshTokenExpired
+		return RefreshAccessTokenResponse{}, fmt.Errorf("refreshAccessToken: %w", ErrRefreshTokenExpired)
 	}
 
 	accessToken, err := signJWT(refreshToken.UserID, s.jwtSecret, accessTokenExpireDate)

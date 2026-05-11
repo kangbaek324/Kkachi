@@ -15,6 +15,7 @@ type Querier interface {
 	DeleteRefreshToken(ctx context.Context, token string) error
 	GetRefreshToken(ctx context.Context, token string) (RefreshToken, error)
 	GetUser(ctx context.Context, username string) (User, error)
+	GetWalletByWalletNumber(ctx context.Context, walletNumber string) (GetWalletByWalletNumberRow, error)
 	GetWallets(ctx context.Context, userID int64) ([]GetWalletsRow, error)
 }
 

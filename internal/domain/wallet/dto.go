@@ -17,3 +17,9 @@ type WalletItem struct {
 type GetWalletsResponse struct {
 	Wallets []WalletItem `json:"wallets"`
 }
+
+type EditWalletNicknameRequest struct {
+	WalletNumber string `json:"walletNumber" binding:"required"`
+	Nickname     string `json:"nickname"`
+}
+

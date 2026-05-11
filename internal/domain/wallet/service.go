@@ -5,14 +5,21 @@ import (
 	"errors"
 	"fmt"
 	"math/rand/v2"
+	"net/http"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	db "github.com/kangbaek324/kkachi/db/sqlc"
+	"github.com/kangbaek324/kkachi/internal/common"
 )
+
+var ErrWalletNotFound = common.NewAppError(http.StatusNotFound, "wallet not found")
+var ErrNotWalletOwner = common.NewAppError(http.StatusForbidden, "not wallet owner")
 
 type Service interface {
 	CreateWallet(ctx context.Context, req CreateWalletRequest, userId int64) (CreateWalletResponse, error)
 	GetWallets(ctx context.Context, userId int64) (GetWalletsResponse, error)
+	EditWalletNickname(ctx context.Context, req EditWalletNicknameRequest, userId int64) error
 }
 
 type walletService struct {
@@ -36,7 +43,7 @@ func (s *walletService) CreateWallet(ctx context.Context, req CreateWalletReques
 			if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 				continue
 			}
-			return CreateWalletResponse{}, fmt.Errorf("create Wallet: %w", err)
+			return CreateWalletResponse{}, fmt.Errorf("createWallet: %w", err)
 		}
 
 		return CreateWalletResponse{
@@ -51,7 +58,7 @@ func (s *walletService) CreateWallet(ctx context.Context, req CreateWalletReques
 func (s *walletService) GetWallets(ctx context.Context, userId int64) (GetWalletsResponse, error) {
 	wallets, err := s.q.GetWallets(ctx, userId)
 	if err != nil {
-		return GetWalletsResponse{}, fmt.Errorf("get wallets: %w", err)
+		return GetWalletsResponse{}, fmt.Errorf("getWallets: %w", err)
 	}
 
 	items := make([]WalletItem, len(wallets))
@@ -65,4 +72,20 @@ func (s *walletService) GetWallets(ctx context.Context, userId int64) (GetWallet
 	return GetWalletsResponse{
 		Wallets: items,
 	}, nil
+}
+
+func (s *walletService) EditWalletNickname(ctx context.Context, req EditWalletNicknameRequest, userId int64) error {
+	wallet, err := s.q.GetWalletByWalletNumber(ctx, req.WalletNumber)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return fmt.Errorf("editWalletNickname: %w", ErrWalletNotFound)
+		}
+		return fmt.Errorf("editWalletNickname: %w", err)
+	}
+
+	if wallet.UserID != userId {
+		return fmt.Errorf("editWalletNickname: %w", ErrNotWalletOwner)
+	}
+
+	return nil
 }

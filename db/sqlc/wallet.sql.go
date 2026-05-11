@@ -32,6 +32,23 @@ func (q *Queries) CreateWallet(ctx context.Context, arg CreateWalletParams) (Wal
 	return i, err
 }
 
+const getWalletByWalletNumber = `-- name: GetWalletByWalletNumber :one
+SELECT user_id, wallet_number, nickname FROM wallets WHERE wallet_number = $1
+`
+
+type GetWalletByWalletNumberRow struct {
+	UserID       int64  `json:"user_id"`
+	WalletNumber string `json:"wallet_number"`
+	Nickname     string `json:"nickname"`
+}
+
+func (q *Queries) GetWalletByWalletNumber(ctx context.Context, walletNumber string) (GetWalletByWalletNumberRow, error) {
+	row := q.db.QueryRow(ctx, getWalletByWalletNumber, walletNumber)
+	var i GetWalletByWalletNumberRow
+	err := row.Scan(&i.UserID, &i.WalletNumber, &i.Nickname)
+	return i, err
+}
+
 const getWallets = `-- name: GetWallets :many
 SELECT wallet_number, nickname FROM wallets WHERE user_id = $1
 `

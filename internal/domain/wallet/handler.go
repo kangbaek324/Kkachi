@@ -1,7 +1,6 @@
 package wallet
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -24,19 +23,33 @@ func (h *Handler) createWallet(c *gin.Context) {
 
 	res, err := h.svc.CreateWallet(c.Request.Context(), req, c.GetInt64("userId"))
 	if err != nil {
-		log.Printf("createWallet: %v", err)
-		common.ApiResponse(c, http.StatusInternalServerError, false, nil, "internal server error")
+		common.ErrorResponse(c, err)
 		return
 	}
+
 	common.ApiResponse(c, http.StatusCreated, true, res)
 }
 
 func (h *Handler) getWallets(c *gin.Context) {
 	res, err := h.svc.GetWallets(c.Request.Context(), c.GetInt64("userId"))
 	if err != nil {
-		log.Printf("createWallet: %v", err)
-		common.ApiResponse(c, http.StatusInternalServerError, false, nil, "internal server error")
+		common.ErrorResponse(c, err)
 		return
 	}
-	common.ApiResponse(c, http.StatusCreated, true, res)
+
+	common.ApiResponse(c, http.StatusOK, true, res)
+}
+
+func (h *Handler) editWalletNickname(c *gin.Context) {
+	req, ok := common.BindJSON[EditWalletNicknameRequest](c)
+	if !ok {
+		return
+	}
+
+	if err := h.svc.EditWalletNickname(c.Request.Context(), req, c.GetInt64("userId")); err != nil {
+		common.ErrorResponse(c, err)
+		return
+	}
+
+	common.ApiResponse(c, http.StatusOK, true, nil)
 }
