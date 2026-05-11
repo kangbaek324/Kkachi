@@ -20,6 +20,7 @@ type Service interface {
 	CreateWallet(ctx context.Context, req CreateWalletRequest, userId int64) (CreateWalletResponse, error)
 	GetWallets(ctx context.Context, userId int64) (GetWalletsResponse, error)
 	EditWalletNickname(ctx context.Context, req EditWalletNicknameRequest, userId int64) error
+	GetWalletBalance(ctx context.Context, userId int64, walletNumber string) (GetWalletBalanceResponse, error)
 }
 
 type walletService struct {
@@ -71,6 +72,33 @@ func (s *walletService) GetWallets(ctx context.Context, userId int64) (GetWallet
 
 	return GetWalletsResponse{
 		Wallets: items,
+	}, nil
+}
+
+func (s *walletService) GetWalletBalance(ctx context.Context, userId int64, walletNumber string) (GetWalletBalanceResponse, error) {
+	rows, err := s.q.GetWalletBalance(ctx, walletNumber)
+	if err != nil {
+		return GetWalletBalanceResponse{}, fmt.Errorf("GetWalletBalance: %w", err)
+	}
+
+	if len(rows) == 0 {
+		return GetWalletBalanceResponse{}, fmt.Errorf("GetWalletBalance: %w", ErrWalletNotFound)
+	}
+	if rows[0].UserID != userId {
+		return GetWalletBalanceResponse{}, fmt.Errorf("GetWalletBalance: %w", ErrNotWalletOwner)
+	}
+
+	items := make([]WalletBalance, len(rows))
+	for i, r := range rows {
+		items[i] = WalletBalance{
+			Code:   r.Code,
+			Name:   r.Name,
+			Amount: r.Amount,
+		}
+	}
+
+	return GetWalletBalanceResponse{
+		Balances: items,
 	}, nil
 }
 

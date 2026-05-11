@@ -40,6 +40,16 @@ func (h *Handler) getWallets(c *gin.Context) {
 	common.ApiResponse(c, http.StatusOK, true, res)
 }
 
+func (h *Handler) getWalletBalance(c *gin.Context) {
+	res, err := h.svc.GetWalletBalance(c.Request.Context(), c.GetInt64("userId"), c.Param("wallet_number"))
+	if err != nil {
+		common.ErrorResponse(c, err)
+		return
+	}
+
+	common.ApiResponse(c, http.StatusOK, true, res)
+}
+
 func (h *Handler) editWalletNickname(c *gin.Context) {
 	req, ok := common.BindJSON[EditWalletNicknameRequest](c)
 	if !ok {

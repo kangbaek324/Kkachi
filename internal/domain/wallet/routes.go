@@ -16,5 +16,6 @@ func Register(rg *gin.RouterGroup, pool *pgxpool.Pool, jwtSecret string) {
 
 	wallets.POST("/", h.createWallet)
 	wallets.GET("/", h.getWallets)
+	wallets.GET("/:wallet_number/balances", h.getWalletBalance)
 	wallets.PATCH("/", h.editWalletNickname)
 }

@@ -7,6 +7,8 @@ package sqlc
 
 import (
 	"context"
+
+	decimal "github.com/shopspring/decimal"
 )
 
 const createWallet = `-- name: CreateWallet :one
@@ -30,6 +32,53 @@ func (q *Queries) CreateWallet(ctx context.Context, arg CreateWalletParams) (Wal
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const getWalletBalance = `-- name: GetWalletBalance :many
+SELECT 
+    w.user_id,
+    c.code,
+    c.name,
+    COALESCE(b.amount, 0) AS amount
+FROM wallets w
+JOIN currencies c ON true
+LEFT JOIN balances b 
+    ON b.currency_id = c.id
+    AND b.wallet_id = w.id
+WHERE w.wallet_number = $1
+ORDER BY COALESCE(b.amount, 0) DESC
+`
+
+type GetWalletBalanceRow struct {
+	UserID int64           `json:"user_id"`
+	Code   string          `json:"code"`
+	Name   string          `json:"name"`
+	Amount decimal.Decimal `json:"amount"`
+}
+
+func (q *Queries) GetWalletBalance(ctx context.Context, walletNumber string) ([]GetWalletBalanceRow, error) {
+	rows, err := q.db.Query(ctx, getWalletBalance, walletNumber)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetWalletBalanceRow
+	for rows.Next() {
+		var i GetWalletBalanceRow
+		if err := rows.Scan(
+			&i.UserID,
+			&i.Code,
+			&i.Name,
+			&i.Amount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getWalletByWalletNumber = `-- name: GetWalletByWalletNumber :one
