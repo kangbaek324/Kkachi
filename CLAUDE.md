@@ -165,6 +165,11 @@ c.JSON(http.StatusBadRequest, common.Response{
 - Query naming convention: `GetUser`, `ListUsers`, `CreateUser`, `UpdateUser`, `DeleteUser`
 - Generated code goes into `db/sqlc/` (shared package, not per-domain)
 
+## Concurrency Rules
+
+- In Transfer, always lock the wallet row first (`FOR UPDATE OF w`) before reading the balance. This serializes concurrent transfers on the same wallet and prevents race conditions on balance reads.
+- Do not use `FOR UPDATE` on the nullable side of a `LEFT JOIN` — PostgreSQL will reject it. Use `FOR UPDATE OF <table>` to target specific tables.
+
 ## Testing
 
 - Unit test services with mocked repository interfaces

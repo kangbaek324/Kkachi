@@ -34,7 +34,92 @@ func (q *Queries) CreateWallet(ctx context.Context, arg CreateWalletParams) (Wal
 	return i, err
 }
 
-const getWalletBalance = `-- name: GetWalletBalance :many
+const getWallet = `-- name: GetWallet :one
+SELECT user_id, wallet_number, nickname FROM wallets WHERE wallet_number = $1
+`
+
+type GetWalletRow struct {
+	UserID       int64  `json:"user_id"`
+	WalletNumber string `json:"wallet_number"`
+	Nickname     string `json:"nickname"`
+}
+
+func (q *Queries) GetWallet(ctx context.Context, walletNumber string) (GetWalletRow, error) {
+	row := q.db.QueryRow(ctx, getWallet, walletNumber)
+	var i GetWalletRow
+	err := row.Scan(&i.UserID, &i.WalletNumber, &i.Nickname)
+	return i, err
+}
+
+const getWalletBalance = `-- name: GetWalletBalance :one
+SELECT
+    w.user_id,
+    COALESCE(b.amount, 0) AS amount
+FROM wallets w
+JOIN currencies c ON c.code = $2
+LEFT JOIN balances b
+    ON b.currency_id = c.id
+    AND b.wallet_id = w.id
+WHERE w.wallet_number = $1
+`
+
+type GetWalletBalanceParams struct {
+	WalletNumber string `json:"wallet_number"`
+	Code         string `json:"code"`
+}
+
+type GetWalletBalanceRow struct {
+	UserID int64           `json:"user_id"`
+	Amount decimal.Decimal `json:"amount"`
+}
+
+func (q *Queries) GetWalletBalance(ctx context.Context, arg GetWalletBalanceParams) (GetWalletBalanceRow, error) {
+	row := q.db.QueryRow(ctx, getWalletBalance, arg.WalletNumber, arg.Code)
+	var i GetWalletBalanceRow
+	err := row.Scan(&i.UserID, &i.Amount)
+	return i, err
+}
+
+const getWalletBalanceLock = `-- name: GetWalletBalanceLock :one
+SELECT
+    w.id AS wallet_id,
+    w.user_id,
+    c.id AS currency_id,
+    COALESCE(b.amount, 0) AS amount
+FROM wallets w
+JOIN currencies c ON c.code = $2
+LEFT JOIN balances b
+    ON b.currency_id = c.id
+    AND b.wallet_id = w.id
+WHERE w.wallet_number = $1
+FOR UPDATE OF w
+`
+
+type GetWalletBalanceLockParams struct {
+	WalletNumber string `json:"wallet_number"`
+	Code         string `json:"code"`
+}
+
+type GetWalletBalanceLockRow struct {
+	WalletID   int64           `json:"wallet_id"`
+	UserID     int64           `json:"user_id"`
+	CurrencyID int64           `json:"currency_id"`
+	Amount     decimal.Decimal `json:"amount"`
+}
+
+func (q *Queries) GetWalletBalanceLock(ctx context.Context, arg GetWalletBalanceLockParams) (GetWalletBalanceLockRow, error) {
+	row := q.db.QueryRow(ctx, getWalletBalanceLock, arg.WalletNumber, arg.Code)
+	var i GetWalletBalanceLockRow
+	err := row.Scan(
+		&i.WalletID,
+		&i.UserID,
+		&i.CurrencyID,
+		&i.Amount,
+	)
+	return i, err
+}
+
+const getWalletBalances = `-- name: GetWalletBalances :many
 SELECT 
     w.user_id,
     c.code,
@@ -49,22 +134,22 @@ WHERE w.wallet_number = $1
 ORDER BY COALESCE(b.amount, 0) DESC
 `
 
-type GetWalletBalanceRow struct {
+type GetWalletBalancesRow struct {
 	UserID int64           `json:"user_id"`
 	Code   string          `json:"code"`
 	Name   string          `json:"name"`
 	Amount decimal.Decimal `json:"amount"`
 }
 
-func (q *Queries) GetWalletBalance(ctx context.Context, walletNumber string) ([]GetWalletBalanceRow, error) {
-	rows, err := q.db.Query(ctx, getWalletBalance, walletNumber)
+func (q *Queries) GetWalletBalances(ctx context.Context, walletNumber string) ([]GetWalletBalancesRow, error) {
+	rows, err := q.db.Query(ctx, getWalletBalances, walletNumber)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetWalletBalanceRow
+	var items []GetWalletBalancesRow
 	for rows.Next() {
-		var i GetWalletBalanceRow
+		var i GetWalletBalancesRow
 		if err := rows.Scan(
 			&i.UserID,
 			&i.Code,
@@ -79,23 +164,6 @@ func (q *Queries) GetWalletBalance(ctx context.Context, walletNumber string) ([]
 		return nil, err
 	}
 	return items, nil
-}
-
-const getWalletByWalletNumber = `-- name: GetWalletByWalletNumber :one
-SELECT user_id, wallet_number, nickname FROM wallets WHERE wallet_number = $1
-`
-
-type GetWalletByWalletNumberRow struct {
-	UserID       int64  `json:"user_id"`
-	WalletNumber string `json:"wallet_number"`
-	Nickname     string `json:"nickname"`
-}
-
-func (q *Queries) GetWalletByWalletNumber(ctx context.Context, walletNumber string) (GetWalletByWalletNumberRow, error) {
-	row := q.db.QueryRow(ctx, getWalletByWalletNumber, walletNumber)
-	var i GetWalletByWalletNumberRow
-	err := row.Scan(&i.UserID, &i.WalletNumber, &i.Nickname)
-	return i, err
 }
 
 const getWallets = `-- name: GetWallets :many
@@ -125,4 +193,22 @@ func (q *Queries) GetWallets(ctx context.Context, userID int64) ([]GetWalletsRow
 		return nil, err
 	}
 	return items, nil
+}
+
+const upsertBalance = `-- name: UpsertBalance :exec
+INSERT INTO balances (wallet_id, currency_id, amount)
+VALUES ($1, $2, $3)
+ON CONFLICT (wallet_id, currency_id)
+DO UPDATE SET amount = balances.amount + EXCLUDED.amount
+`
+
+type UpsertBalanceParams struct {
+	WalletID   int64           `json:"wallet_id"`
+	CurrencyID int64           `json:"currency_id"`
+	Amount     decimal.Decimal `json:"amount"`
+}
+
+func (q *Queries) UpsertBalance(ctx context.Context, arg UpsertBalanceParams) error {
+	_, err := q.db.Exec(ctx, upsertBalance, arg.WalletID, arg.CurrencyID, arg.Amount)
+	return err
 }

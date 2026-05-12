@@ -15,9 +15,12 @@ type Querier interface {
 	DeleteRefreshToken(ctx context.Context, token string) error
 	GetRefreshToken(ctx context.Context, token string) (RefreshToken, error)
 	GetUser(ctx context.Context, username string) (User, error)
-	GetWalletBalance(ctx context.Context, walletNumber string) ([]GetWalletBalanceRow, error)
-	GetWalletByWalletNumber(ctx context.Context, walletNumber string) (GetWalletByWalletNumberRow, error)
+	GetWallet(ctx context.Context, walletNumber string) (GetWalletRow, error)
+	GetWalletBalance(ctx context.Context, arg GetWalletBalanceParams) (GetWalletBalanceRow, error)
+	GetWalletBalanceLock(ctx context.Context, arg GetWalletBalanceLockParams) (GetWalletBalanceLockRow, error)
+	GetWalletBalances(ctx context.Context, walletNumber string) ([]GetWalletBalancesRow, error)
 	GetWallets(ctx context.Context, userID int64) ([]GetWalletsRow, error)
+	UpsertBalance(ctx context.Context, arg UpsertBalanceParams) error
 }
 
 var _ Querier = (*Queries)(nil)

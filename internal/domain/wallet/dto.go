@@ -34,3 +34,10 @@ type EditWalletNicknameRequest struct {
 	WalletNumber string `json:"walletNumber" binding:"required"`
 	Nickname     string `json:"nickname"`
 }
+
+// Transfer
+type TransferRequest struct {
+	Receiver     string          `json:"receiver" binding:"required"`
+	CurrencyCode string          `json:"currencyCode" binding:"required"`
+	Amount       decimal.Decimal `json:"amount" binding:"required"`
+}
