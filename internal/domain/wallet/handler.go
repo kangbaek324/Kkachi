@@ -40,8 +40,8 @@ func (h *Handler) getWallets(c *gin.Context) {
 	common.ApiResponse(c, http.StatusOK, true, res)
 }
 
-func (h *Handler) getWalletBalance(c *gin.Context) {
-	res, err := h.svc.GetWalletBalance(c.Request.Context(), c.GetInt64("userId"), c.Param("wallet_number"))
+func (h *Handler) getWalletBalances(c *gin.Context) {
+	res, err := h.svc.GetWalletBalances(c.Request.Context(), c.GetInt64("userId"), c.Param("wallet_number"))
 	if err != nil {
 		common.ErrorResponse(c, err)
 		return
@@ -57,6 +57,21 @@ func (h *Handler) editWalletNickname(c *gin.Context) {
 	}
 
 	if err := h.svc.EditWalletNickname(c.Request.Context(), req, c.GetInt64("userId")); err != nil {
+		common.ErrorResponse(c, err)
+		return
+	}
+
+	common.ApiResponse(c, http.StatusOK, true, nil)
+}
+
+// Transfer
+func (h *Handler) transfer(c *gin.Context) {
+	req, ok := common.BindJSON[TransferRequest](c)
+	if !ok {
+		return
+	}
+
+	if err := h.svc.Transfer(c.Request.Context(), req, c.Param("wallet_number"), c.GetInt64("userId")); err != nil {
 		common.ErrorResponse(c, err)
 		return
 	}

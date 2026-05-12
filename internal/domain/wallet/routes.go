@@ -8,14 +8,18 @@ import (
 )
 
 func Register(rg *gin.RouterGroup, pool *pgxpool.Pool, jwtSecret string) {
-	svc := NewService(db.New(pool))
+	svc := NewService(db.New(pool), pool)
 	h := NewHandler(svc)
 
 	wallets := rg.Group("/wallets")
 	wallets.Use(middleware.Auth(jwtSecret))
 
+	// Wallet
 	wallets.POST("/", h.createWallet)
 	wallets.GET("/", h.getWallets)
-	wallets.GET("/:wallet_number/balances", h.getWalletBalance)
+	wallets.GET("/:wallet_number/balances", h.getWalletBalances)
 	wallets.PATCH("/", h.editWalletNickname)
+
+	// Transfer
+	wallets.POST("/:wallet_number/transfer", h.transfer)
 }
