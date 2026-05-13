@@ -21,6 +21,7 @@ type Querier interface {
 	GetWalletBalances(ctx context.Context, walletNumber string) ([]GetWalletBalancesRow, error)
 	GetWallets(ctx context.Context, userID int64) ([]GetWalletsRow, error)
 	ListCurrencies(ctx context.Context) ([]ListCurrenciesRow, error)
+	ListCurrenciesWithRate(ctx context.Context) ([]ListCurrenciesWithRateRow, error)
 	UpsertBalance(ctx context.Context, arg UpsertBalanceParams) error
 	UpsertExchangeRate(ctx context.Context, arg UpsertExchangeRateParams) error
 }

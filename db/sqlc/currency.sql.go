@@ -8,6 +8,7 @@ package sqlc
 import (
 	"context"
 
+	"github.com/jackc/pgx/v5/pgtype"
 	decimal "github.com/shopspring/decimal"
 )
 
@@ -30,6 +31,54 @@ func (q *Queries) ListCurrencies(ctx context.Context) ([]ListCurrenciesRow, erro
 	for rows.Next() {
 		var i ListCurrenciesRow
 		if err := rows.Scan(&i.ID, &i.Code); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listCurrenciesWithRate = `-- name: ListCurrenciesWithRate :many
+SELECT
+    c.id,
+    c.code,
+    c.name,
+    c.unit,
+    er.rate,
+    er.updated_at
+FROM currencies c
+LEFT JOIN exchange_rates er ON er.currency_id = c.id
+`
+
+type ListCurrenciesWithRateRow struct {
+	ID        int64               `json:"id"`
+	Code      string              `json:"code"`
+	Name      string              `json:"name"`
+	Unit      string              `json:"unit"`
+	Rate      decimal.NullDecimal `json:"rate"`
+	UpdatedAt pgtype.Timestamptz  `json:"updated_at"`
+}
+
+func (q *Queries) ListCurrenciesWithRate(ctx context.Context) ([]ListCurrenciesWithRateRow, error) {
+	rows, err := q.db.Query(ctx, listCurrenciesWithRate)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListCurrenciesWithRateRow
+	for rows.Next() {
+		var i ListCurrenciesWithRateRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Code,
+			&i.Name,
+			&i.Unit,
+			&i.Rate,
+			&i.UpdatedAt,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
