@@ -35,26 +35,28 @@ func (q *Queries) CreateWallet(ctx context.Context, arg CreateWalletParams) (Wal
 }
 
 const getWallet = `-- name: GetWallet :one
-SELECT user_id, wallet_number, nickname FROM wallets WHERE wallet_number = $1
+SELECT user_id, id, nickname FROM wallets WHERE wallet_number = $1
 `
 
 type GetWalletRow struct {
-	UserID       int64  `json:"user_id"`
-	WalletNumber string `json:"wallet_number"`
-	Nickname     string `json:"nickname"`
+	UserID   int64  `json:"user_id"`
+	ID       int64  `json:"id"`
+	Nickname string `json:"nickname"`
 }
 
 func (q *Queries) GetWallet(ctx context.Context, walletNumber string) (GetWalletRow, error) {
 	row := q.db.QueryRow(ctx, getWallet, walletNumber)
 	var i GetWalletRow
-	err := row.Scan(&i.UserID, &i.WalletNumber, &i.Nickname)
+	err := row.Scan(&i.UserID, &i.ID, &i.Nickname)
 	return i, err
 }
 
 const getWalletBalance = `-- name: GetWalletBalance :one
 SELECT
+    w.id AS wallet_id,
     w.user_id,
-    COALESCE(b.amount, 0) AS amount
+    COALESCE(b.amount, 0) AS amount,
+    c.id AS currency_id
 FROM wallets w
 JOIN currencies c ON c.code = $2
 LEFT JOIN balances b
@@ -69,14 +71,21 @@ type GetWalletBalanceParams struct {
 }
 
 type GetWalletBalanceRow struct {
-	UserID int64           `json:"user_id"`
-	Amount decimal.Decimal `json:"amount"`
+	WalletID   int64           `json:"wallet_id"`
+	UserID     int64           `json:"user_id"`
+	Amount     decimal.Decimal `json:"amount"`
+	CurrencyID int64           `json:"currency_id"`
 }
 
 func (q *Queries) GetWalletBalance(ctx context.Context, arg GetWalletBalanceParams) (GetWalletBalanceRow, error) {
 	row := q.db.QueryRow(ctx, getWalletBalance, arg.WalletNumber, arg.Code)
 	var i GetWalletBalanceRow
-	err := row.Scan(&i.UserID, &i.Amount)
+	err := row.Scan(
+		&i.WalletID,
+		&i.UserID,
+		&i.Amount,
+		&i.CurrencyID,
+	)
 	return i, err
 }
 
@@ -195,11 +204,12 @@ func (q *Queries) GetWallets(ctx context.Context, userID int64) ([]GetWalletsRow
 	return items, nil
 }
 
-const upsertBalance = `-- name: UpsertBalance :exec
+const upsertBalance = `-- name: UpsertBalance :one
 INSERT INTO balances (wallet_id, currency_id, amount)
 VALUES ($1, $2, $3)
 ON CONFLICT (wallet_id, currency_id)
 DO UPDATE SET amount = balances.amount + EXCLUDED.amount
+RETURNING amount
 `
 
 type UpsertBalanceParams struct {
@@ -208,7 +218,9 @@ type UpsertBalanceParams struct {
 	Amount     decimal.Decimal `json:"amount"`
 }
 
-func (q *Queries) UpsertBalance(ctx context.Context, arg UpsertBalanceParams) error {
-	_, err := q.db.Exec(ctx, upsertBalance, arg.WalletID, arg.CurrencyID, arg.Amount)
-	return err
+func (q *Queries) UpsertBalance(ctx context.Context, arg UpsertBalanceParams) (decimal.Decimal, error) {
+	row := q.db.QueryRow(ctx, upsertBalance, arg.WalletID, arg.CurrencyID, arg.Amount)
+	var amount decimal.Decimal
+	err := row.Scan(&amount)
+	return amount, err
 }

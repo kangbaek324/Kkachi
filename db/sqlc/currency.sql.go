@@ -12,6 +12,25 @@ import (
 	decimal "github.com/shopspring/decimal"
 )
 
+const getRate = `-- name: GetRate :one
+SELECT er.rate, c.unit
+FROM exchange_rates er
+JOIN currencies c ON c.id = er.currency_id
+WHERE c.code = $1
+`
+
+type GetRateRow struct {
+	Rate decimal.Decimal `json:"rate"`
+	Unit decimal.Decimal `json:"unit"`
+}
+
+func (q *Queries) GetRate(ctx context.Context, code string) (GetRateRow, error) {
+	row := q.db.QueryRow(ctx, getRate, code)
+	var i GetRateRow
+	err := row.Scan(&i.Rate, &i.Unit)
+	return i, err
+}
+
 const listCurrencies = `-- name: ListCurrencies :many
 SELECT id, code FROM currencies
 `
@@ -57,7 +76,7 @@ type ListCurrenciesWithRateRow struct {
 	ID        int64               `json:"id"`
 	Code      string              `json:"code"`
 	Name      string              `json:"name"`
-	Unit      string              `json:"unit"`
+	Unit      decimal.Decimal     `json:"unit"`
 	Rate      decimal.NullDecimal `json:"rate"`
 	UpdatedAt pgtype.Timestamptz  `json:"updated_at"`
 }

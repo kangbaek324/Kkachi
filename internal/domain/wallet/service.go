@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	db "github.com/kangbaek324/kkachi/db/sqlc"
 	"github.com/kangbaek324/kkachi/internal/common"
+	"github.com/shopspring/decimal"
 )
 
 var ErrWalletNotFound = common.NewAppError(http.StatusNotFound, "wallet not found")
@@ -19,6 +20,10 @@ var ErrNotWalletOwner = common.NewAppError(http.StatusForbidden, "not wallet own
 var ErrInsufficientFund = common.NewAppError(http.StatusBadRequest, "insufficient funds")
 var ErrReceiverNotFound = common.NewAppError(http.StatusNotFound, "receiver wallet not found")
 var ErrSelfTransfer = common.NewAppError(http.StatusBadRequest, "cannot transfer to the same wallet")
+var ErrSameCurrency = common.NewAppError(http.StatusBadRequest, "cannot exchange to the same currency")
+var ErrInvalidAmount = common.NewAppError(http.StatusBadRequest, "amount must be at least 1")
+
+var minAmount = decimal.NewFromInt(1)
 
 type Service interface {
 	CreateWallet(ctx context.Context, req CreateWalletRequest, userId int64) (CreateWalletResponse, error)
@@ -26,6 +31,7 @@ type Service interface {
 	EditWalletNickname(ctx context.Context, req EditWalletNicknameRequest, userId int64) error
 	GetWalletBalances(ctx context.Context, userId int64, walletNumber string) (GetWalletBalanceResponse, error)
 	Transfer(ctx context.Context, req TransferRequest, walletNumber string, userId int64) error
+	Exchange(ctx context.Context, req ExchangeRequest, walletNumber string, userId int64) (ExchangeResponse, error)
 }
 
 type walletService struct {
@@ -124,75 +130,3 @@ func (s *walletService) EditWalletNickname(ctx context.Context, req EditWalletNi
 	return nil
 }
 
-// Lock the wallet row first to serialize concurrent transfers on the same wallet.
-func (s *walletService) Transfer(ctx context.Context, req TransferRequest, walletNumber string, userId int64) error {
-	if walletNumber == req.Receiver {
-		return ErrSelfTransfer
-	}
-
-	// Validate wallet
-	wallet, err := s.q.GetWallet(ctx, walletNumber)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return ErrWalletNotFound
-		}
-		return fmt.Errorf("transfer: getWallet: %w", err)
-	}
-	if wallet.UserID != userId {
-		return ErrNotWalletOwner
-	}
-
-	// Processing Transfer
-	tx, err := s.pool.Begin(ctx)
-	if err != nil {
-		return fmt.Errorf("transfer: openTx: %w", err)
-	}
-	defer tx.Rollback(ctx)
-
-	q := db.New(tx)
-
-	// Find Sender Balance
-	sender, err := q.GetWalletBalanceLock(ctx, db.GetWalletBalanceLockParams{
-		WalletNumber: walletNumber,
-		Code:         req.CurrencyCode,
-	})
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return ErrInsufficientFund
-		}
-		return fmt.Errorf("transfer: getWalletBalanceLock %w", err)
-	}
-	if sender.Amount.LessThan(req.Amount) {
-		return ErrInsufficientFund
-	}
-
-	// Find Receiver Balance
-	receiver, err := q.GetWalletBalanceLock(ctx, db.GetWalletBalanceLockParams{
-		WalletNumber: req.Receiver,
-		Code:         req.CurrencyCode,
-	})
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return ErrReceiverNotFound
-		}
-		return fmt.Errorf("transfer: getWalletBalanceLock: %w", err)
-	}
-
-	// Update Result
-	if err := q.UpsertBalance(ctx, db.UpsertBalanceParams{
-		WalletID:   sender.WalletID,
-		CurrencyID: sender.CurrencyID,
-		Amount:     req.Amount.Neg(),
-	}); err != nil {
-		return fmt.Errorf("transfer: upsertBalance: %w", err)
-	}
-	if err := q.UpsertBalance(ctx, db.UpsertBalanceParams{
-		WalletID:   receiver.WalletID,
-		CurrencyID: receiver.CurrencyID,
-		Amount:     req.Amount,
-	}); err != nil {
-		return fmt.Errorf("transfer: upsertBalance:: %w", err)
-	}
-
-	return tx.Commit(ctx)
-}

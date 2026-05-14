@@ -5,7 +5,7 @@ import "github.com/shopspring/decimal"
 type CurrencyItem struct {
 	Code string              `json:"code"`
 	Name string              `json:"name"`
-	Unit string              `json:"unit"`
+	Unit decimal.Decimal     `json:"unit"`
 	Rate decimal.NullDecimal `json:"rate"`
 }
 

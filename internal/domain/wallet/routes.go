@@ -22,4 +22,7 @@ func Register(rg *gin.RouterGroup, pool *pgxpool.Pool, jwtSecret string) {
 
 	// Transfer
 	wallets.POST("/:wallet_number/transfer", h.transfer)
+
+	// Exchange
+	wallets.POST("/:wallet_number/exchange", h.exchange)
 }

@@ -41,3 +41,18 @@ type TransferRequest struct {
 	CurrencyCode string          `json:"currencyCode" binding:"required"`
 	Amount       decimal.Decimal `json:"amount" binding:"required"`
 }
+
+// Exchange
+type ExchangeRequest struct {
+	FromCode string          `json:"fromCode" binding:"required"`
+	ToCode   string          `json:"toCode" binding:"required"`
+	Amount   decimal.Decimal `json:"amount" binding:"required"`
+}
+
+type ExchangeResponse struct {
+	FromCode        string          `json:"fromCode"`
+	ToCode          string          `json:"toCode"`
+	ConvertedAmount decimal.Decimal `json:"convertedAmount"`
+	FromBalance     decimal.Decimal `json:"fromBalance"`
+	ToBalance       decimal.Decimal `json:"toBalance"`
+}

@@ -6,6 +6,8 @@ package sqlc
 
 import (
 	"context"
+
+	decimal "github.com/shopspring/decimal"
 )
 
 type Querier interface {
@@ -13,6 +15,7 @@ type Querier interface {
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreateWallet(ctx context.Context, arg CreateWalletParams) (Wallet, error)
 	DeleteRefreshToken(ctx context.Context, token string) error
+	GetRate(ctx context.Context, code string) (GetRateRow, error)
 	GetRefreshToken(ctx context.Context, token string) (RefreshToken, error)
 	GetUser(ctx context.Context, username string) (User, error)
 	GetWallet(ctx context.Context, walletNumber string) (GetWalletRow, error)
@@ -22,7 +25,7 @@ type Querier interface {
 	GetWallets(ctx context.Context, userID int64) ([]GetWalletsRow, error)
 	ListCurrencies(ctx context.Context) ([]ListCurrenciesRow, error)
 	ListCurrenciesWithRate(ctx context.Context) ([]ListCurrenciesWithRateRow, error)
-	UpsertBalance(ctx context.Context, arg UpsertBalanceParams) error
+	UpsertBalance(ctx context.Context, arg UpsertBalanceParams) (decimal.Decimal, error)
 	UpsertExchangeRate(ctx context.Context, arg UpsertExchangeRateParams) error
 }
 

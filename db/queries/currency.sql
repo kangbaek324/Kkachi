@@ -12,6 +12,12 @@ SELECT
 FROM currencies c
 LEFT JOIN exchange_rates er ON er.currency_id = c.id;
 
+-- name: GetRate :one
+SELECT er.rate, c.unit
+FROM exchange_rates er
+JOIN currencies c ON c.id = er.currency_id
+WHERE c.code = $1;
+
 -- name: UpsertExchangeRate :exec
 INSERT INTO exchange_rates (currency_id, rate, updated_at)
 VALUES (@currency_id, @rate, NOW())
