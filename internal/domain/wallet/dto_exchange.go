@@ -21,6 +21,7 @@ type ExchangeResponse struct {
 }
 
 type ExchangeLogItem struct {
+	Id           int64           `json:"id"`
 	WalletNumber string          `json:"walletNumber"`
 	FromCode     string          `json:"fromCode"`
 	ToCode       string          `json:"toCode"`

@@ -140,3 +140,41 @@ func (s *walletService) Exchange(ctx context.Context, req ExchangeRequest, walle
 		ToBalance:       toBalance,
 	}, nil
 }
+
+func (s *walletService) GetExchangeLogs(ctx context.Context, walletNumber string, userId int64) (ExchangeLogsResponse, error) {
+	wallet, err := s.q.GetWallet(ctx, walletNumber)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ExchangeLogsResponse{}, ErrWalletNotFound
+		}
+		return ExchangeLogsResponse{}, fmt.Errorf("getExchangeLogs: getWallet: %w", err)
+	}
+	if wallet.UserID != userId {
+		return ExchangeLogsResponse{}, ErrNotWalletOwner
+	}
+
+	rows, err := s.q.GetExchangeLogs(ctx, wallet.ID)
+	if err != nil {
+		return ExchangeLogsResponse{}, fmt.Errorf("getExchangeLogs: %w", err)
+	}
+
+	items := make([]ExchangeLogItem, len(rows))
+	for i, r := range rows {
+		items[i] = ExchangeLogItem{
+			Id:           r.ID,
+			WalletNumber: r.WalletNumber,
+			FromCode:     r.FromCode,
+			ToCode:       r.ToCode,
+			FromAmount:   r.FromAmount,
+			ToAmount:     r.ToAmount,
+			FromRate:     r.FromRate,
+			FromUnit:     r.FromUnit,
+			ToRate:       r.ToRate,
+			ToUnit:       r.ToUnit,
+			KrwAmount:    r.KrwAmount,
+			ExchangedAt:  r.ExchangedAt.Time,
+		}
+	}
+
+	return ExchangeLogsResponse{ExchangeLogs: items}, nil
+}

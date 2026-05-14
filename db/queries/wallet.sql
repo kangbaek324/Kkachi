@@ -72,3 +72,39 @@ INSERT INTO exchange_logs (
     to_unit,
     krw_amount
 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);
+
+-- name: GetTransferLogs :many
+SELECT
+    t.id,
+    fw.wallet_number AS from_wallet_number,
+    tw.wallet_number AS to_wallet_number,
+    c.code           AS currency_code,
+    t.amount,
+    t.transferred_at
+FROM transfer_logs t
+JOIN wallets fw    ON fw.id = t.from_wallet_id
+JOIN wallets tw    ON tw.id = t.to_wallet_id
+JOIN currencies c  ON c.id  = t.currency_id
+WHERE t.from_wallet_id = $1 OR t.to_wallet_id = $1
+ORDER BY t.transferred_at DESC;
+
+-- name: GetExchangeLogs :many
+SELECT
+    e.id,
+    w.wallet_number,
+    fc.code AS from_code,
+    tc.code AS to_code,
+    e.from_amount,
+    e.to_amount,
+    e.from_rate,
+    e.from_unit,
+    e.to_rate,
+    e.to_unit,
+    e.krw_amount,
+    e.exchanged_at
+FROM exchange_logs e
+JOIN wallets w     ON w.id  = e.wallet_id
+JOIN currencies fc ON fc.id = e.from_currency_id
+JOIN currencies tc ON tc.id = e.to_currency_id
+WHERE e.wallet_id = $1
+ORDER BY e.exchanged_at DESC;

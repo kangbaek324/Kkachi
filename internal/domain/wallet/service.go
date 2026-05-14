@@ -31,7 +31,9 @@ type Service interface {
 	EditWalletNickname(ctx context.Context, req EditWalletNicknameRequest, userId int64) error
 	GetWalletBalances(ctx context.Context, userId int64, walletNumber string) (GetWalletBalanceResponse, error)
 	Transfer(ctx context.Context, req TransferRequest, walletNumber string, userId int64) error
+	GetTransferLogs(ctx context.Context, walletNumber string, userId int64) (TransferLogsResponse, error)
 	Exchange(ctx context.Context, req ExchangeRequest, walletNumber string, userId int64) (ExchangeResponse, error)
+	GetExchangeLogs(ctx context.Context, walletNumber string, userId int64) (ExchangeLogsResponse, error)
 }
 
 type walletService struct {

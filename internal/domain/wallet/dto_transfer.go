@@ -13,6 +13,7 @@ type TransferRequest struct {
 }
 
 type TransferLogItem struct {
+	Id               int64           `json:"id"`
 	FromWalletNumber string          `json:"fromWalletNumber"`
 	ToWalletNumber   string          `json:"toWalletNumber"`
 	Amount           decimal.Decimal `json:"amount"`
