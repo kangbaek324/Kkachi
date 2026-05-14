@@ -129,4 +129,3 @@ func (s *walletService) EditWalletNickname(ctx context.Context, req EditWalletNi
 
 	return nil
 }
-
