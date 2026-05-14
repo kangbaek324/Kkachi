@@ -23,6 +23,21 @@ type Currency struct {
 	Unit decimal.Decimal `json:"unit"`
 }
 
+type ExchangeLog struct {
+	ID             int64              `json:"id"`
+	WalletID       int64              `json:"wallet_id"`
+	FromCurrencyID int64              `json:"from_currency_id"`
+	ToCurrencyID   int64              `json:"to_currency_id"`
+	FromAmount     decimal.Decimal    `json:"from_amount"`
+	ToAmount       decimal.Decimal    `json:"to_amount"`
+	FromRate       decimal.Decimal    `json:"from_rate"`
+	FromUnit       decimal.Decimal    `json:"from_unit"`
+	ToRate         decimal.Decimal    `json:"to_rate"`
+	ToUnit         decimal.Decimal    `json:"to_unit"`
+	KrwAmount      decimal.Decimal    `json:"krw_amount"`
+	ExchangedAt    pgtype.Timestamptz `json:"exchanged_at"`
+}
+
 type ExchangeRate struct {
 	ID         int64              `json:"id"`
 	CurrencyID int64              `json:"currency_id"`
@@ -36,6 +51,15 @@ type RefreshToken struct {
 	Token     string             `json:"token"`
 	ExpiresAt pgtype.Timestamptz `json:"expires_at"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
+type TransferLog struct {
+	ID            int64              `json:"id"`
+	FromWalletID  int64              `json:"from_wallet_id"`
+	ToWalletID    int64              `json:"to_wallet_id"`
+	CurrencyID    int64              `json:"currency_id"`
+	Amount        decimal.Decimal    `json:"amount"`
+	TransferredAt pgtype.Timestamptz `json:"transferred_at"`
 }
 
 type User struct {

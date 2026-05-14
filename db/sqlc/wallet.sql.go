@@ -11,6 +11,72 @@ import (
 	decimal "github.com/shopspring/decimal"
 )
 
+const createExchangeLog = `-- name: CreateExchangeLog :exec
+INSERT INTO exchange_logs (
+    wallet_id,
+    from_currency_id,
+    to_currency_id,
+    from_amount,
+    to_amount,
+    from_rate,
+    from_unit,
+    to_rate,
+    to_unit,
+    krw_amount
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+`
+
+type CreateExchangeLogParams struct {
+	WalletID       int64           `json:"wallet_id"`
+	FromCurrencyID int64           `json:"from_currency_id"`
+	ToCurrencyID   int64           `json:"to_currency_id"`
+	FromAmount     decimal.Decimal `json:"from_amount"`
+	ToAmount       decimal.Decimal `json:"to_amount"`
+	FromRate       decimal.Decimal `json:"from_rate"`
+	FromUnit       decimal.Decimal `json:"from_unit"`
+	ToRate         decimal.Decimal `json:"to_rate"`
+	ToUnit         decimal.Decimal `json:"to_unit"`
+	KrwAmount      decimal.Decimal `json:"krw_amount"`
+}
+
+func (q *Queries) CreateExchangeLog(ctx context.Context, arg CreateExchangeLogParams) error {
+	_, err := q.db.Exec(ctx, createExchangeLog,
+		arg.WalletID,
+		arg.FromCurrencyID,
+		arg.ToCurrencyID,
+		arg.FromAmount,
+		arg.ToAmount,
+		arg.FromRate,
+		arg.FromUnit,
+		arg.ToRate,
+		arg.ToUnit,
+		arg.KrwAmount,
+	)
+	return err
+}
+
+const createTransferLog = `-- name: CreateTransferLog :exec
+INSERT INTO transfer_logs (from_wallet_id, to_wallet_id, currency_id, amount)
+VALUES ($1, $2, $3, $4)
+`
+
+type CreateTransferLogParams struct {
+	FromWalletID int64           `json:"from_wallet_id"`
+	ToWalletID   int64           `json:"to_wallet_id"`
+	CurrencyID   int64           `json:"currency_id"`
+	Amount       decimal.Decimal `json:"amount"`
+}
+
+func (q *Queries) CreateTransferLog(ctx context.Context, arg CreateTransferLogParams) error {
+	_, err := q.db.Exec(ctx, createTransferLog,
+		arg.FromWalletID,
+		arg.ToWalletID,
+		arg.CurrencyID,
+		arg.Amount,
+	)
+	return err
+}
+
 const createWallet = `-- name: CreateWallet :one
 INSERT INTO wallets (user_id, wallet_number, nickname) VALUES($1, $2, $3) RETURNING id, user_id, wallet_number, nickname, created_at
 `

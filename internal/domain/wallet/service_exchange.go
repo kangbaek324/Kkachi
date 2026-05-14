@@ -7,6 +7,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	db "github.com/kangbaek324/kkachi/db/sqlc"
+	"github.com/shopspring/decimal"
 )
 
 func (s *walletService) Exchange(ctx context.Context, req ExchangeRequest, walletNumber string, userId int64) (ExchangeResponse, error) {
@@ -65,6 +66,11 @@ func (s *walletService) Exchange(ctx context.Context, req ExchangeRequest, walle
 	const ratePrecision = 8
 	const amountPrecision = 6
 
+	one := decimal.NewFromInt(1)
+	fromRate, fromUnit := one, one
+	toRate, toUnit := one, one
+
+	// From -> KRW
 	krwAmount := req.Amount
 	if req.FromCode != "KRW" {
 		rateInfo, err := q.GetRate(ctx, req.FromCode)
@@ -72,16 +78,19 @@ func (s *walletService) Exchange(ctx context.Context, req ExchangeRequest, walle
 			return ExchangeResponse{}, fmt.Errorf("exchange: getRate %w", err)
 		}
 
-		krwAmount = req.Amount.Mul(rateInfo.Rate).DivRound(rateInfo.Unit, ratePrecision)
+		fromRate, fromUnit = rateInfo.Rate, rateInfo.Unit
+		krwAmount = req.Amount.Mul(fromRate).DivRound(fromUnit, ratePrecision)
 	}
 
+	// KRW -> To
 	resultAmount := krwAmount
 	if req.ToCode != "KRW" {
 		rateInfo, err := q.GetRate(ctx, req.ToCode)
 		if err != nil {
 			return ExchangeResponse{}, fmt.Errorf("exchange: getRate %w", err)
 		}
-		resultAmount = krwAmount.Mul(rateInfo.Unit).DivRound(rateInfo.Rate, ratePrecision)
+		toRate, toUnit = rateInfo.Rate, rateInfo.Unit
+		resultAmount = krwAmount.Mul(toUnit).DivRound(toRate, ratePrecision)
 	}
 	resultAmount = resultAmount.Round(amountPrecision)
 
@@ -102,6 +111,21 @@ func (s *walletService) Exchange(ctx context.Context, req ExchangeRequest, walle
 	})
 	if err != nil {
 		return ExchangeResponse{}, fmt.Errorf("exchange: upsertBalance: %w", err)
+	}
+
+	if err := q.CreateExchangeLog(ctx, db.CreateExchangeLogParams{
+		WalletID:       wallet.ID,
+		FromCurrencyID: from.CurrencyID,
+		ToCurrencyID:   to.CurrencyID,
+		FromAmount:     req.Amount,
+		ToAmount:       resultAmount,
+		FromRate:       fromRate,
+		FromUnit:       fromUnit,
+		ToRate:         toRate,
+		ToUnit:         toUnit,
+		KrwAmount:      krwAmount,
+	}); err != nil {
+		return ExchangeResponse{}, fmt.Errorf("exchange: createExchangeLog: %w", err)
 	}
 
 	if err := tx.Commit(ctx); err != nil {

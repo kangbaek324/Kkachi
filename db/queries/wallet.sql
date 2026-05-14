@@ -54,3 +54,21 @@ LEFT JOIN balances b
     AND b.wallet_id = w.id
 WHERE w.wallet_number = $1
 FOR UPDATE OF w;
+
+-- name: CreateTransferLog :exec
+INSERT INTO transfer_logs (from_wallet_id, to_wallet_id, currency_id, amount)
+VALUES ($1, $2, $3, $4);
+
+-- name: CreateExchangeLog :exec
+INSERT INTO exchange_logs (
+    wallet_id,
+    from_currency_id,
+    to_currency_id,
+    from_amount,
+    to_amount,
+    from_rate,
+    from_unit,
+    to_rate,
+    to_unit,
+    krw_amount
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);

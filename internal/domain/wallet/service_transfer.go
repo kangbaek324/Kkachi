@@ -82,5 +82,17 @@ func (s *walletService) Transfer(ctx context.Context, req TransferRequest, walle
 		return fmt.Errorf("transfer: upsertBalance:: %w", err)
 	}
 
-	return tx.Commit(ctx)
+	if err := q.CreateTransferLog(ctx, db.CreateTransferLogParams{
+		FromWalletID: sender.WalletID,
+		ToWalletID:   receiver.WalletID,
+		CurrencyID:   sender.CurrencyID,
+		Amount:       req.Amount,
+	}); err != nil {
+		return fmt.Errorf("transfer: createTransferLog: %w", err)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("transfer: commit: %w", err)
+	}
+	return nil
 }

@@ -11,7 +11,9 @@ import (
 )
 
 type Querier interface {
+	CreateExchangeLog(ctx context.Context, arg CreateExchangeLogParams) error
 	CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) (RefreshToken, error)
+	CreateTransferLog(ctx context.Context, arg CreateTransferLogParams) error
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreateWallet(ctx context.Context, arg CreateWalletParams) (Wallet, error)
 	DeleteRefreshToken(ctx context.Context, token string) error
