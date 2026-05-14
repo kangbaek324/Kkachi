@@ -78,3 +78,20 @@ func (h *Handler) transfer(c *gin.Context) {
 
 	common.ApiResponse(c, http.StatusOK, true, nil)
 }
+
+// Exchange
+func (h *Handler) exchange(c *gin.Context) {
+	req, ok := common.BindJSON[ExchangeRequest](c)
+	if !ok {
+		return
+	}
+
+	res, err := h.svc.Exchange(c.Request.Context(), req, c.Param("wallet_number"), c.GetInt64("userId"))
+	if err != nil {
+		common.ErrorResponse(c, err)
+		return
+	}
+
+	common.ApiResponse(c, http.StatusOK, true, res)
+
+}

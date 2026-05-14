@@ -12,6 +12,7 @@ type Config struct {
 	Port        string
 	JWTSecret   string
 	GinMode     string
+	ApiKey      string
 }
 
 func Load() *Config {
@@ -24,6 +25,7 @@ func Load() *Config {
 		Port:        getEnv("PORT", "8080"),
 		JWTSecret:   getEnv("JWT_SECRET", ""),
 		GinMode:     getEnv("GIN_MODE", "debug"),
+		ApiKey:      getEnv("API_KEY", ""),
 	}
 }
 

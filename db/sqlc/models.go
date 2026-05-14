@@ -17,10 +17,10 @@ type Balance struct {
 }
 
 type Currency struct {
-	ID   int64  `json:"id"`
-	Code string `json:"code"`
-	Name string `json:"name"`
-	Unit string `json:"unit"`
+	ID   int64           `json:"id"`
+	Code string          `json:"code"`
+	Name string          `json:"name"`
+	Unit decimal.Decimal `json:"unit"`
 }
 
 type ExchangeRate struct {

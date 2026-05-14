@@ -11,7 +11,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/kangbaek324/kkachi/db"
+	"github.com/kangbaek324/kkachi/db/sqlc"
 	"github.com/kangbaek324/kkachi/internal/config"
+	"github.com/kangbaek324/kkachi/internal/domain/currency/worker"
 	"github.com/kangbaek324/kkachi/routes"
 )
 
@@ -37,6 +39,10 @@ func main() {
 		Addr:    ":" + cfg.Port,
 		Handler: r,
 	}
+
+	// Worker Setup
+	q := sqlc.New(pool)
+	worker.NewExchangeRateWorker(q).Start(cfg.ApiKey)
 
 	go func() {
 		log.Printf("server listening on :%s", cfg.Port)

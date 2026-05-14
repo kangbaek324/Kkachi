@@ -13,7 +13,7 @@ CREATE TABLE currencies (
     id      BIGSERIAL    PRIMARY KEY,
     code    VARCHAR(10)  NOT NULL UNIQUE,
     name    VARCHAR(50)  NOT NULL,
-    unit    VARCHAR(10)  NOT NULL
+    unit    NUMERIC      NOT NULL
 );
 
 CREATE TABLE exchange_rates (

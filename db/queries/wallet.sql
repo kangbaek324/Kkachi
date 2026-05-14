@@ -2,7 +2,7 @@
 INSERT INTO wallets (user_id, wallet_number, nickname) VALUES($1, $2, $3) RETURNING *;
 
 -- name: GetWallet :one
-SELECT user_id, wallet_number, nickname FROM wallets WHERE wallet_number = $1;
+SELECT user_id, id, nickname FROM wallets WHERE wallet_number = $1;
 
 -- name: GetWallets :many
 SELECT wallet_number, nickname FROM wallets WHERE user_id = $1;
@@ -23,8 +23,10 @@ ORDER BY COALESCE(b.amount, 0) DESC;
 
 -- name: GetWalletBalance :one
 SELECT
+    w.id AS wallet_id,
     w.user_id,
-    COALESCE(b.amount, 0) AS amount
+    COALESCE(b.amount, 0) AS amount,
+    c.id AS currency_id
 FROM wallets w
 JOIN currencies c ON c.code = $2
 LEFT JOIN balances b
@@ -32,11 +34,12 @@ LEFT JOIN balances b
     AND b.wallet_id = w.id
 WHERE w.wallet_number = $1;
 
--- name: UpsertBalance :exec
+-- name: UpsertBalance :one
 INSERT INTO balances (wallet_id, currency_id, amount)
 VALUES ($1, $2, $3)
 ON CONFLICT (wallet_id, currency_id)
-DO UPDATE SET amount = balances.amount + EXCLUDED.amount;
+DO UPDATE SET amount = balances.amount + EXCLUDED.amount
+RETURNING amount;
 
 -- name: GetWalletBalanceLock :one
 SELECT

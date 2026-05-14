@@ -1,10 +1,14 @@
 package currency
 
-import "github.com/gin-gonic/gin"
+import (
+	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5/pgxpool"
+	db "github.com/kangbaek324/kkachi/db/sqlc"
+)
 
-func Register(rg *gin.RouterGroup) {
-	h := NewHandler(NewService())
+func Register(rg *gin.RouterGroup, pool *pgxpool.Pool) {
+	h := NewHandler(NewService(db.New(pool)))
 	currencies := rg.Group("/currencies")
-	_ = h
-	_ = currencies
+
+	currencies.GET("/", h.getCurrencies)
 }
