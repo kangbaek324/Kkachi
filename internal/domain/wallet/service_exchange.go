@@ -40,6 +40,7 @@ func (s *walletService) Exchange(ctx context.Context, req ExchangeRequest, walle
 	q := db.New(tx)
 
 	// Find FromCode Balance
+	// TODO: Need FromCode Notfound logic
 	from, err := q.GetWalletBalanceLock(ctx, db.GetWalletBalanceLockParams{
 		WalletNumber: walletNumber,
 		Code:         req.FromCode,
@@ -54,13 +55,13 @@ func (s *walletService) Exchange(ctx context.Context, req ExchangeRequest, walle
 		return ExchangeResponse{}, ErrInsufficientFund
 	}
 
-	// Find toCode Balance
-	to, err := q.GetWalletBalance(ctx, db.GetWalletBalanceParams{
-		WalletNumber: walletNumber,
-		Code:         req.ToCode,
-	})
+	// Find toCurrency ID
+	toCurrencyId, err := q.GetCurrencyIdByCode(ctx, req.ToCode)
 	if err != nil {
-		return ExchangeResponse{}, fmt.Errorf("exchange: getWalletBalanceLock %w", err)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ExchangeResponse{}, ErrCurrencyNotFound
+		}
+		return ExchangeResponse{}, fmt.Errorf("exchange: getCurrencyIdByCode: %w", err)
 	}
 
 	const ratePrecision = 8
@@ -106,7 +107,7 @@ func (s *walletService) Exchange(ctx context.Context, req ExchangeRequest, walle
 
 	toBalance, err := q.UpsertBalance(ctx, db.UpsertBalanceParams{
 		WalletID:   wallet.ID,
-		CurrencyID: to.CurrencyID,
+		CurrencyID: toCurrencyId,
 		Amount:     resultAmount,
 	})
 	if err != nil {
@@ -116,7 +117,7 @@ func (s *walletService) Exchange(ctx context.Context, req ExchangeRequest, walle
 	if err := q.CreateExchangeLog(ctx, db.CreateExchangeLogParams{
 		WalletID:       wallet.ID,
 		FromCurrencyID: from.CurrencyID,
-		ToCurrencyID:   to.CurrencyID,
+		ToCurrencyID:   toCurrencyId,
 		FromAmount:     req.Amount,
 		ToAmount:       resultAmount,
 		FromRate:       fromRate,

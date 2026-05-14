@@ -1,6 +1,9 @@
 -- name: ListCurrencies :many
 SELECT id, code FROM currencies;
 
+-- name: GetCurrencyIdByCode :one
+SELECT id FROM currencies WHERE code = $1;
+
 -- name: ListCurrenciesWithRate :many
 SELECT
     c.id,

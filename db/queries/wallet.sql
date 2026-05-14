@@ -21,19 +21,6 @@ LEFT JOIN balances b
 WHERE w.wallet_number = $1
 ORDER BY COALESCE(b.amount, 0) DESC;
 
--- name: GetWalletBalance :one
-SELECT
-    w.id AS wallet_id,
-    w.user_id,
-    COALESCE(b.amount, 0) AS amount,
-    c.id AS currency_id
-FROM wallets w
-JOIN currencies c ON c.code = $2
-LEFT JOIN balances b
-    ON b.currency_id = c.id
-    AND b.wallet_id = w.id
-WHERE w.wallet_number = $1;
-
 -- name: UpsertBalance :one
 INSERT INTO balances (wallet_id, currency_id, amount)
 VALUES ($1, $2, $3)

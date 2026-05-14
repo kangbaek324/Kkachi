@@ -240,44 +240,6 @@ func (q *Queries) GetWallet(ctx context.Context, walletNumber string) (GetWallet
 	return i, err
 }
 
-const getWalletBalance = `-- name: GetWalletBalance :one
-SELECT
-    w.id AS wallet_id,
-    w.user_id,
-    COALESCE(b.amount, 0) AS amount,
-    c.id AS currency_id
-FROM wallets w
-JOIN currencies c ON c.code = $2
-LEFT JOIN balances b
-    ON b.currency_id = c.id
-    AND b.wallet_id = w.id
-WHERE w.wallet_number = $1
-`
-
-type GetWalletBalanceParams struct {
-	WalletNumber string `json:"wallet_number"`
-	Code         string `json:"code"`
-}
-
-type GetWalletBalanceRow struct {
-	WalletID   int64           `json:"wallet_id"`
-	UserID     int64           `json:"user_id"`
-	Amount     decimal.Decimal `json:"amount"`
-	CurrencyID int64           `json:"currency_id"`
-}
-
-func (q *Queries) GetWalletBalance(ctx context.Context, arg GetWalletBalanceParams) (GetWalletBalanceRow, error) {
-	row := q.db.QueryRow(ctx, getWalletBalance, arg.WalletNumber, arg.Code)
-	var i GetWalletBalanceRow
-	err := row.Scan(
-		&i.WalletID,
-		&i.UserID,
-		&i.Amount,
-		&i.CurrencyID,
-	)
-	return i, err
-}
-
 const getWalletBalanceLock = `-- name: GetWalletBalanceLock :one
 SELECT
     w.id AS wallet_id,
