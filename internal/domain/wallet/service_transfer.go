@@ -82,5 +82,49 @@ func (s *walletService) Transfer(ctx context.Context, req TransferRequest, walle
 		return fmt.Errorf("transfer: upsertBalance:: %w", err)
 	}
 
-	return tx.Commit(ctx)
+	if err := q.CreateTransferLog(ctx, db.CreateTransferLogParams{
+		FromWalletID: sender.WalletID,
+		ToWalletID:   receiver.WalletID,
+		CurrencyID:   sender.CurrencyID,
+		Amount:       req.Amount,
+	}); err != nil {
+		return fmt.Errorf("transfer: createTransferLog: %w", err)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("transfer: commit: %w", err)
+	}
+	return nil
+}
+
+func (s *walletService) GetTransferLogs(ctx context.Context, walletNumber string, userId int64) (TransferLogsResponse, error) {
+	wallet, err := s.q.GetWallet(ctx, walletNumber)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return TransferLogsResponse{}, ErrWalletNotFound
+		}
+		return TransferLogsResponse{}, fmt.Errorf("getTransferLogs: getWallet: %w", err)
+	}
+	if wallet.UserID != userId {
+		return TransferLogsResponse{}, ErrNotWalletOwner
+	}
+
+	rows, err := s.q.GetTransferLogs(ctx, wallet.ID)
+	if err != nil {
+		return TransferLogsResponse{}, fmt.Errorf("getTransferLogs: %w", err)
+	}
+
+	items := make([]TransferLogItem, len(rows))
+	for i, r := range rows {
+		items[i] = TransferLogItem{
+			Id:               r.ID,
+			FromWalletNumber: r.FromWalletNumber,
+			ToWalletNumber:   r.ToWalletNumber,
+			Amount:           r.Amount,
+			CurrencyCode:     r.CurrencyCode,
+			TransferredAt:    r.TransferredAt.Time,
+		}
+	}
+
+	return TransferLogsResponse{TransferLogs: items}, nil
 }

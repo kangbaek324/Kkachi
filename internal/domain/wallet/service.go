@@ -22,6 +22,7 @@ var ErrReceiverNotFound = common.NewAppError(http.StatusNotFound, "receiver wall
 var ErrSelfTransfer = common.NewAppError(http.StatusBadRequest, "cannot transfer to the same wallet")
 var ErrSameCurrency = common.NewAppError(http.StatusBadRequest, "cannot exchange to the same currency")
 var ErrInvalidAmount = common.NewAppError(http.StatusBadRequest, "amount must be at least 1")
+var ErrCurrencyNotFound = common.NewAppError(http.StatusNotFound, "currency not found")
 
 var minAmount = decimal.NewFromInt(1)
 
@@ -31,7 +32,9 @@ type Service interface {
 	EditWalletNickname(ctx context.Context, req EditWalletNicknameRequest, userId int64) error
 	GetWalletBalances(ctx context.Context, userId int64, walletNumber string) (GetWalletBalanceResponse, error)
 	Transfer(ctx context.Context, req TransferRequest, walletNumber string, userId int64) error
+	GetTransferLogs(ctx context.Context, walletNumber string, userId int64) (TransferLogsResponse, error)
 	Exchange(ctx context.Context, req ExchangeRequest, walletNumber string, userId int64) (ExchangeResponse, error)
+	GetExchangeLogs(ctx context.Context, walletNumber string, userId int64) (ExchangeLogsResponse, error)
 }
 
 type walletService struct {
@@ -129,4 +132,3 @@ func (s *walletService) EditWalletNickname(ctx context.Context, req EditWalletNi
 
 	return nil
 }
-

@@ -79,6 +79,16 @@ func (h *Handler) transfer(c *gin.Context) {
 	common.ApiResponse(c, http.StatusOK, true, nil)
 }
 
+func (h *Handler) getTransferLogs(c *gin.Context) {
+	res, err := h.svc.GetTransferLogs(c.Request.Context(), c.Param("wallet_number"), c.GetInt64("userId"))
+	if err != nil {
+		common.ErrorResponse(c, err)
+		return
+	}
+
+	common.ApiResponse(c, http.StatusOK, true, res)
+}
+
 // Exchange
 func (h *Handler) exchange(c *gin.Context) {
 	req, ok := common.BindJSON[ExchangeRequest](c)
@@ -93,5 +103,14 @@ func (h *Handler) exchange(c *gin.Context) {
 	}
 
 	common.ApiResponse(c, http.StatusOK, true, res)
+}
 
+func (h *Handler) getExchangeLogs(c *gin.Context) {
+	res, err := h.svc.GetExchangeLogs(c.Request.Context(), c.Param("wallet_number"), c.GetInt64("userId"))
+	if err != nil {
+		common.ErrorResponse(c, err)
+		return
+	}
+
+	common.ApiResponse(c, http.StatusOK, true, res)
 }

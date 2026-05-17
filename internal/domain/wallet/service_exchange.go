@@ -7,6 +7,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	db "github.com/kangbaek324/kkachi/db/sqlc"
+	"github.com/shopspring/decimal"
 )
 
 func (s *walletService) Exchange(ctx context.Context, req ExchangeRequest, walletNumber string, userId int64) (ExchangeResponse, error) {
@@ -39,6 +40,7 @@ func (s *walletService) Exchange(ctx context.Context, req ExchangeRequest, walle
 	q := db.New(tx)
 
 	// Find FromCode Balance
+	// TODO: Need FromCode Notfound logic
 	from, err := q.GetWalletBalanceLock(ctx, db.GetWalletBalanceLockParams{
 		WalletNumber: walletNumber,
 		Code:         req.FromCode,
@@ -53,18 +55,23 @@ func (s *walletService) Exchange(ctx context.Context, req ExchangeRequest, walle
 		return ExchangeResponse{}, ErrInsufficientFund
 	}
 
-	// Find toCode Balance
-	to, err := q.GetWalletBalance(ctx, db.GetWalletBalanceParams{
-		WalletNumber: walletNumber,
-		Code:         req.ToCode,
-	})
+	// Find toCurrency ID
+	toCurrencyId, err := q.GetCurrencyIdByCode(ctx, req.ToCode)
 	if err != nil {
-		return ExchangeResponse{}, fmt.Errorf("exchange: getWalletBalanceLock %w", err)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ExchangeResponse{}, ErrCurrencyNotFound
+		}
+		return ExchangeResponse{}, fmt.Errorf("exchange: getCurrencyIdByCode: %w", err)
 	}
 
 	const ratePrecision = 8
 	const amountPrecision = 6
 
+	one := decimal.NewFromInt(1)
+	fromRate, fromUnit := one, one
+	toRate, toUnit := one, one
+
+	// From -> KRW
 	krwAmount := req.Amount
 	if req.FromCode != "KRW" {
 		rateInfo, err := q.GetRate(ctx, req.FromCode)
@@ -72,16 +79,19 @@ func (s *walletService) Exchange(ctx context.Context, req ExchangeRequest, walle
 			return ExchangeResponse{}, fmt.Errorf("exchange: getRate %w", err)
 		}
 
-		krwAmount = req.Amount.Mul(rateInfo.Rate).DivRound(rateInfo.Unit, ratePrecision)
+		fromRate, fromUnit = rateInfo.Rate, rateInfo.Unit
+		krwAmount = req.Amount.Mul(fromRate).DivRound(fromUnit, ratePrecision)
 	}
 
+	// KRW -> To
 	resultAmount := krwAmount
 	if req.ToCode != "KRW" {
 		rateInfo, err := q.GetRate(ctx, req.ToCode)
 		if err != nil {
 			return ExchangeResponse{}, fmt.Errorf("exchange: getRate %w", err)
 		}
-		resultAmount = krwAmount.Mul(rateInfo.Unit).DivRound(rateInfo.Rate, ratePrecision)
+		toRate, toUnit = rateInfo.Rate, rateInfo.Unit
+		resultAmount = krwAmount.Mul(toUnit).DivRound(toRate, ratePrecision)
 	}
 	resultAmount = resultAmount.Round(amountPrecision)
 
@@ -97,11 +107,26 @@ func (s *walletService) Exchange(ctx context.Context, req ExchangeRequest, walle
 
 	toBalance, err := q.UpsertBalance(ctx, db.UpsertBalanceParams{
 		WalletID:   wallet.ID,
-		CurrencyID: to.CurrencyID,
+		CurrencyID: toCurrencyId,
 		Amount:     resultAmount,
 	})
 	if err != nil {
 		return ExchangeResponse{}, fmt.Errorf("exchange: upsertBalance: %w", err)
+	}
+
+	if err := q.CreateExchangeLog(ctx, db.CreateExchangeLogParams{
+		WalletID:       wallet.ID,
+		FromCurrencyID: from.CurrencyID,
+		ToCurrencyID:   toCurrencyId,
+		FromAmount:     req.Amount,
+		ToAmount:       resultAmount,
+		FromRate:       fromRate,
+		FromUnit:       fromUnit,
+		ToRate:         toRate,
+		ToUnit:         toUnit,
+		KrwAmount:      krwAmount,
+	}); err != nil {
+		return ExchangeResponse{}, fmt.Errorf("exchange: createExchangeLog: %w", err)
 	}
 
 	if err := tx.Commit(ctx); err != nil {
@@ -115,4 +140,42 @@ func (s *walletService) Exchange(ctx context.Context, req ExchangeRequest, walle
 		FromBalance:     fromBalance,
 		ToBalance:       toBalance,
 	}, nil
+}
+
+func (s *walletService) GetExchangeLogs(ctx context.Context, walletNumber string, userId int64) (ExchangeLogsResponse, error) {
+	wallet, err := s.q.GetWallet(ctx, walletNumber)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ExchangeLogsResponse{}, ErrWalletNotFound
+		}
+		return ExchangeLogsResponse{}, fmt.Errorf("getExchangeLogs: getWallet: %w", err)
+	}
+	if wallet.UserID != userId {
+		return ExchangeLogsResponse{}, ErrNotWalletOwner
+	}
+
+	rows, err := s.q.GetExchangeLogs(ctx, wallet.ID)
+	if err != nil {
+		return ExchangeLogsResponse{}, fmt.Errorf("getExchangeLogs: %w", err)
+	}
+
+	items := make([]ExchangeLogItem, len(rows))
+	for i, r := range rows {
+		items[i] = ExchangeLogItem{
+			Id:           r.ID,
+			WalletNumber: r.WalletNumber,
+			FromCode:     r.FromCode,
+			ToCode:       r.ToCode,
+			FromAmount:   r.FromAmount,
+			ToAmount:     r.ToAmount,
+			FromRate:     r.FromRate,
+			FromUnit:     r.FromUnit,
+			ToRate:       r.ToRate,
+			ToUnit:       r.ToUnit,
+			KrwAmount:    r.KrwAmount,
+			ExchangedAt:  r.ExchangedAt.Time,
+		}
+	}
+
+	return ExchangeLogsResponse{ExchangeLogs: items}, nil
 }

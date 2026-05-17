@@ -8,8 +8,75 @@ package sqlc
 import (
 	"context"
 
+	"github.com/jackc/pgx/v5/pgtype"
 	decimal "github.com/shopspring/decimal"
 )
+
+const createExchangeLog = `-- name: CreateExchangeLog :exec
+INSERT INTO exchange_logs (
+    wallet_id,
+    from_currency_id,
+    to_currency_id,
+    from_amount,
+    to_amount,
+    from_rate,
+    from_unit,
+    to_rate,
+    to_unit,
+    krw_amount
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+`
+
+type CreateExchangeLogParams struct {
+	WalletID       int64           `json:"wallet_id"`
+	FromCurrencyID int64           `json:"from_currency_id"`
+	ToCurrencyID   int64           `json:"to_currency_id"`
+	FromAmount     decimal.Decimal `json:"from_amount"`
+	ToAmount       decimal.Decimal `json:"to_amount"`
+	FromRate       decimal.Decimal `json:"from_rate"`
+	FromUnit       decimal.Decimal `json:"from_unit"`
+	ToRate         decimal.Decimal `json:"to_rate"`
+	ToUnit         decimal.Decimal `json:"to_unit"`
+	KrwAmount      decimal.Decimal `json:"krw_amount"`
+}
+
+func (q *Queries) CreateExchangeLog(ctx context.Context, arg CreateExchangeLogParams) error {
+	_, err := q.db.Exec(ctx, createExchangeLog,
+		arg.WalletID,
+		arg.FromCurrencyID,
+		arg.ToCurrencyID,
+		arg.FromAmount,
+		arg.ToAmount,
+		arg.FromRate,
+		arg.FromUnit,
+		arg.ToRate,
+		arg.ToUnit,
+		arg.KrwAmount,
+	)
+	return err
+}
+
+const createTransferLog = `-- name: CreateTransferLog :exec
+INSERT INTO transfer_logs (from_wallet_id, to_wallet_id, currency_id, amount)
+VALUES ($1, $2, $3, $4)
+`
+
+type CreateTransferLogParams struct {
+	FromWalletID int64           `json:"from_wallet_id"`
+	ToWalletID   int64           `json:"to_wallet_id"`
+	CurrencyID   int64           `json:"currency_id"`
+	Amount       decimal.Decimal `json:"amount"`
+}
+
+func (q *Queries) CreateTransferLog(ctx context.Context, arg CreateTransferLogParams) error {
+	_, err := q.db.Exec(ctx, createTransferLog,
+		arg.FromWalletID,
+		arg.ToWalletID,
+		arg.CurrencyID,
+		arg.Amount,
+	)
+	return err
+}
 
 const createWallet = `-- name: CreateWallet :one
 INSERT INTO wallets (user_id, wallet_number, nickname) VALUES($1, $2, $3) RETURNING id, user_id, wallet_number, nickname, created_at
@@ -34,6 +101,128 @@ func (q *Queries) CreateWallet(ctx context.Context, arg CreateWalletParams) (Wal
 	return i, err
 }
 
+const getExchangeLogs = `-- name: GetExchangeLogs :many
+SELECT
+    e.id,
+    w.wallet_number,
+    fc.code AS from_code,
+    tc.code AS to_code,
+    e.from_amount,
+    e.to_amount,
+    e.from_rate,
+    e.from_unit,
+    e.to_rate,
+    e.to_unit,
+    e.krw_amount,
+    e.exchanged_at
+FROM exchange_logs e
+JOIN wallets w     ON w.id  = e.wallet_id
+JOIN currencies fc ON fc.id = e.from_currency_id
+JOIN currencies tc ON tc.id = e.to_currency_id
+WHERE e.wallet_id = $1
+ORDER BY e.exchanged_at DESC
+`
+
+type GetExchangeLogsRow struct {
+	ID           int64              `json:"id"`
+	WalletNumber string             `json:"wallet_number"`
+	FromCode     string             `json:"from_code"`
+	ToCode       string             `json:"to_code"`
+	FromAmount   decimal.Decimal    `json:"from_amount"`
+	ToAmount     decimal.Decimal    `json:"to_amount"`
+	FromRate     decimal.Decimal    `json:"from_rate"`
+	FromUnit     decimal.Decimal    `json:"from_unit"`
+	ToRate       decimal.Decimal    `json:"to_rate"`
+	ToUnit       decimal.Decimal    `json:"to_unit"`
+	KrwAmount    decimal.Decimal    `json:"krw_amount"`
+	ExchangedAt  pgtype.Timestamptz `json:"exchanged_at"`
+}
+
+func (q *Queries) GetExchangeLogs(ctx context.Context, walletID int64) ([]GetExchangeLogsRow, error) {
+	rows, err := q.db.Query(ctx, getExchangeLogs, walletID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetExchangeLogsRow
+	for rows.Next() {
+		var i GetExchangeLogsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.WalletNumber,
+			&i.FromCode,
+			&i.ToCode,
+			&i.FromAmount,
+			&i.ToAmount,
+			&i.FromRate,
+			&i.FromUnit,
+			&i.ToRate,
+			&i.ToUnit,
+			&i.KrwAmount,
+			&i.ExchangedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getTransferLogs = `-- name: GetTransferLogs :many
+SELECT
+    t.id,
+    fw.wallet_number AS from_wallet_number,
+    tw.wallet_number AS to_wallet_number,
+    c.code           AS currency_code,
+    t.amount,
+    t.transferred_at
+FROM transfer_logs t
+JOIN wallets fw    ON fw.id = t.from_wallet_id
+JOIN wallets tw    ON tw.id = t.to_wallet_id
+JOIN currencies c  ON c.id  = t.currency_id
+WHERE t.from_wallet_id = $1 OR t.to_wallet_id = $1
+ORDER BY t.transferred_at DESC
+`
+
+type GetTransferLogsRow struct {
+	ID               int64              `json:"id"`
+	FromWalletNumber string             `json:"from_wallet_number"`
+	ToWalletNumber   string             `json:"to_wallet_number"`
+	CurrencyCode     string             `json:"currency_code"`
+	Amount           decimal.Decimal    `json:"amount"`
+	TransferredAt    pgtype.Timestamptz `json:"transferred_at"`
+}
+
+func (q *Queries) GetTransferLogs(ctx context.Context, fromWalletID int64) ([]GetTransferLogsRow, error) {
+	rows, err := q.db.Query(ctx, getTransferLogs, fromWalletID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetTransferLogsRow
+	for rows.Next() {
+		var i GetTransferLogsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.FromWalletNumber,
+			&i.ToWalletNumber,
+			&i.CurrencyCode,
+			&i.Amount,
+			&i.TransferredAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getWallet = `-- name: GetWallet :one
 SELECT user_id, id, nickname FROM wallets WHERE wallet_number = $1
 `
@@ -48,44 +237,6 @@ func (q *Queries) GetWallet(ctx context.Context, walletNumber string) (GetWallet
 	row := q.db.QueryRow(ctx, getWallet, walletNumber)
 	var i GetWalletRow
 	err := row.Scan(&i.UserID, &i.ID, &i.Nickname)
-	return i, err
-}
-
-const getWalletBalance = `-- name: GetWalletBalance :one
-SELECT
-    w.id AS wallet_id,
-    w.user_id,
-    COALESCE(b.amount, 0) AS amount,
-    c.id AS currency_id
-FROM wallets w
-JOIN currencies c ON c.code = $2
-LEFT JOIN balances b
-    ON b.currency_id = c.id
-    AND b.wallet_id = w.id
-WHERE w.wallet_number = $1
-`
-
-type GetWalletBalanceParams struct {
-	WalletNumber string `json:"wallet_number"`
-	Code         string `json:"code"`
-}
-
-type GetWalletBalanceRow struct {
-	WalletID   int64           `json:"wallet_id"`
-	UserID     int64           `json:"user_id"`
-	Amount     decimal.Decimal `json:"amount"`
-	CurrencyID int64           `json:"currency_id"`
-}
-
-func (q *Queries) GetWalletBalance(ctx context.Context, arg GetWalletBalanceParams) (GetWalletBalanceRow, error) {
-	row := q.db.QueryRow(ctx, getWalletBalance, arg.WalletNumber, arg.Code)
-	var i GetWalletBalanceRow
-	err := row.Scan(
-		&i.WalletID,
-		&i.UserID,
-		&i.Amount,
-		&i.CurrencyID,
-	)
 	return i, err
 }
 

@@ -21,8 +21,10 @@ func Register(rg *gin.RouterGroup, pool *pgxpool.Pool, jwtSecret string) {
 	wallets.PATCH("/", h.editWalletNickname)
 
 	// Transfer
-	wallets.POST("/:wallet_number/transfer", h.transfer)
+	wallets.POST("/:wallet_number/transfers", h.transfer)
+	wallets.GET("/:wallet_number/transfers", h.getTransferLogs)
 
 	// Exchange
-	wallets.POST("/:wallet_number/exchange", h.exchange)
+	wallets.POST("/:wallet_number/exchanges", h.exchange)
+	wallets.GET("/:wallet_number/exchanges", h.getExchangeLogs)
 }

@@ -46,3 +46,27 @@ CREATE TABLE refresh_tokens (
     expires_at TIMESTAMPTZ  NOT NULL,
     created_at TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
+
+CREATE TABLE transfer_logs (
+    id               BIGSERIAL      PRIMARY KEY,
+    from_wallet_id   BIGINT         NOT NULL REFERENCES wallets(id),
+    to_wallet_id     BIGINT         NOT NULL REFERENCES wallets(id),
+    currency_id      BIGINT         NOT NULL REFERENCES currencies(id),
+    amount           NUMERIC(18, 6) NOT NULL,
+    transferred_at   TIMESTAMPTZ    NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE exchange_logs (
+    id               BIGSERIAL      PRIMARY KEY,
+    wallet_id        BIGINT         NOT NULL REFERENCES wallets(id),
+    from_currency_id BIGINT         NOT NULL REFERENCES currencies(id),
+    to_currency_id   BIGINT         NOT NULL REFERENCES currencies(id),
+    from_amount      NUMERIC(18, 6) NOT NULL,
+    to_amount        NUMERIC(18, 6) NOT NULL,
+    from_rate        NUMERIC(18, 6) NOT NULL,
+    from_unit        NUMERIC(18, 6) NOT NULL,
+    to_rate          NUMERIC(18, 6) NOT NULL,
+    to_unit          NUMERIC(18, 6) NOT NULL,
+    krw_amount       NUMERIC(18, 6) NOT NULL,
+    exchanged_at     TIMESTAMPTZ    NOT NULL DEFAULT NOW()
+);

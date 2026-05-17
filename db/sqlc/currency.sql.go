@@ -12,6 +12,17 @@ import (
 	decimal "github.com/shopspring/decimal"
 )
 
+const getCurrencyIdByCode = `-- name: GetCurrencyIdByCode :one
+SELECT id FROM currencies WHERE code = $1
+`
+
+func (q *Queries) GetCurrencyIdByCode(ctx context.Context, code string) (int64, error) {
+	row := q.db.QueryRow(ctx, getCurrencyIdByCode, code)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
+}
+
 const getRate = `-- name: GetRate :one
 SELECT er.rate, c.unit
 FROM exchange_rates er
