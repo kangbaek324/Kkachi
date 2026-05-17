@@ -1,19 +1,28 @@
-# KKachi 🏦
+# KKachi
 
-Go 기반의 간단한 다중통화 지갑 REST API 서버입니다. 사용자가 계좌를 개설하고, 다양한 통화로 잔액을 관리하며 송금할 수 있습니다.
+```
+ _      _                  _     _
+| | __ | | __  __ _   ___ | |__ (_)
+| |/ / | |/ / / _` | / __|| '_ \| |
+|   <  |   < | (_| || (__ | | | | |
+|_|\_\ |_|\_\ \__,_| \___||_| |_|_|
+```
+
+Go 기반의 간단한 다중통화 지갑 REST API 서버입니다. Go와 Gin 학습목적으로 제작되었습니다. </br>
+사용자가 계좌를 개설하고, 다양한 통화로 잔액을 관리하며 송금할 수 있습니다.
 
 ## Stack
 
-| 분류 | 기술 |
-|------|------|
-| Language | Go 1.26+ |
-| Framework | Gin |
-| Database | PostgreSQL |
-| DB Driver | pgx/v5 |
-| Query Gen | sqlc |
-| Migration | goose |
-| Auth | JWT (golang-jwt/jwt v5) |
-| Config | godotenv |
+| 분류      | 기술                    |
+| --------- | ----------------------- |
+| Language  | Go 1.26+                |
+| Framework | Gin                     |
+| Database  | PostgreSQL              |
+| DB Driver | pgx/v5                  |
+| Query Gen | sqlc                    |
+| Migration | goose                   |
+| Auth      | JWT (golang-jwt/jwt v5) |
+| Config    | godotenv                |
 
 ## Feature
 
