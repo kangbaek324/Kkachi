@@ -10,11 +10,11 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/kangbaek324/kkachi/db"
-	"github.com/kangbaek324/kkachi/db/sqlc"
-	"github.com/kangbaek324/kkachi/internal/config"
-	"github.com/kangbaek324/kkachi/internal/domain/currency/worker"
-	"github.com/kangbaek324/kkachi/routes"
+	"github.com/kangbaek324/kkachi/apps/backend/db"
+	"github.com/kangbaek324/kkachi/apps/backend/db/sqlc"
+	"github.com/kangbaek324/kkachi/apps/backend/internal/config"
+	"github.com/kangbaek324/kkachi/apps/backend/internal/domain/currency/worker"
+	"github.com/kangbaek324/kkachi/apps/backend/routes"
 )
 
 func main() {

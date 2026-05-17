@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	db "github.com/kangbaek324/kkachi/db/sqlc"
+	db "github.com/kangbaek324/kkachi/apps/backend/db/sqlc"
 )
 
 type Service interface {

@@ -5,11 +5,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/kangbaek324/kkachi/internal/common"
-	"github.com/kangbaek324/kkachi/internal/config"
-	"github.com/kangbaek324/kkachi/internal/domain/currency"
-	"github.com/kangbaek324/kkachi/internal/domain/user"
-	"github.com/kangbaek324/kkachi/internal/domain/wallet"
+	"github.com/kangbaek324/kkachi/apps/backend/internal/common"
+	"github.com/kangbaek324/kkachi/apps/backend/internal/config"
+	"github.com/kangbaek324/kkachi/apps/backend/internal/domain/currency"
+	"github.com/kangbaek324/kkachi/apps/backend/internal/domain/user"
+	"github.com/kangbaek324/kkachi/apps/backend/internal/domain/wallet"
 )
 
 func Register(r *gin.Engine, pool *pgxpool.Pool, cfg *config.Config) {

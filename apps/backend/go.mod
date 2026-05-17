@@ -1,4 +1,4 @@
-module github.com/kangbaek324/kkachi
+module github.com/kangbaek324/kkachi/apps/backend
 
 go 1.26.1
 

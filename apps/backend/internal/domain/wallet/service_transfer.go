@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
-	db "github.com/kangbaek324/kkachi/db/sqlc"
+	db "github.com/kangbaek324/kkachi/apps/backend/db/sqlc"
 )
 
 // Lock the wallet row first to serialize concurrent transfers on the same wallet.

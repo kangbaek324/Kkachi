@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	db "github.com/kangbaek324/kkachi/db/sqlc"
+	db "github.com/kangbaek324/kkachi/apps/backend/db/sqlc"
 	"github.com/robfig/cron/v3"
 	"github.com/shopspring/decimal"
 )

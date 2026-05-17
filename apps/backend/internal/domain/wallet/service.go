@@ -10,8 +10,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
-	db "github.com/kangbaek324/kkachi/db/sqlc"
-	"github.com/kangbaek324/kkachi/internal/common"
+	db "github.com/kangbaek324/kkachi/apps/backend/db/sqlc"
+	"github.com/kangbaek324/kkachi/apps/backend/internal/common"
 	"github.com/shopspring/decimal"
 )
 

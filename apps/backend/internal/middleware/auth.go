@@ -7,7 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/kangbaek324/kkachi/internal/common"
+	"github.com/kangbaek324/kkachi/apps/backend/internal/common"
 )
 
 func Auth(jwtSecret string) gin.HandlerFunc {

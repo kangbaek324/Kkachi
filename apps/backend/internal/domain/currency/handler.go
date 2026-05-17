@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/kangbaek324/kkachi/internal/common"
+	"github.com/kangbaek324/kkachi/apps/backend/internal/common"
 )
 
 type Handler struct {
