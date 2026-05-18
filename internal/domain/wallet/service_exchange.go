@@ -64,7 +64,6 @@ func (s *walletService) Exchange(ctx context.Context, req ExchangeRequest, walle
 		return ExchangeResponse{}, fmt.Errorf("exchange: getCurrencyIdByCode: %w", err)
 	}
 
-	const ratePrecision = 8
 	const amountPrecision = 6
 
 	one := decimal.NewFromInt(1)
@@ -80,7 +79,7 @@ func (s *walletService) Exchange(ctx context.Context, req ExchangeRequest, walle
 		}
 
 		fromRate, fromUnit = rateInfo.Rate, rateInfo.Unit
-		krwAmount = req.Amount.Mul(fromRate).DivRound(fromUnit, ratePrecision)
+		krwAmount = req.Amount.Mul(fromRate).Div(fromUnit)
 	}
 
 	// KRW -> To
@@ -91,9 +90,9 @@ func (s *walletService) Exchange(ctx context.Context, req ExchangeRequest, walle
 			return ExchangeResponse{}, fmt.Errorf("exchange: getRate %w", err)
 		}
 		toRate, toUnit = rateInfo.Rate, rateInfo.Unit
-		resultAmount = krwAmount.Mul(toUnit).DivRound(toRate, ratePrecision)
+		resultAmount = krwAmount.Mul(toUnit).Div(toRate)
 	}
-	resultAmount = resultAmount.Round(amountPrecision)
+	resultAmount = resultAmount.Truncate(amountPrecision)
 
 	// Upsert Result
 	fromBalance, err := q.UpsertBalance(ctx, db.UpsertBalanceParams{
